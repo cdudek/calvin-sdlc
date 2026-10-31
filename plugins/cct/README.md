@@ -2,16 +2,16 @@
 
 Calvin's AI-native software development lifecycle as one Claude Code plugin. It holds `sdlc-run` and every skill, agent and hook the SDLC runs, the UX suite included, and nothing else. It works without the OMR AI Kit installed.
 
-This repo is a Claude Code marketplace named `cct` with one plugin, also named `cct`, in `plugins/cct/`. Every skill is called as `/cct:<name>`, for example `/cct:sdlc-run` or `/cct:ux-review`.
+This repo (`cdudek/calvins-claude-tools`) is a Claude Code marketplace named `cct` with one plugin, also named `cct`, in `plugins/cct/`. Every skill is called as `/cct:<name>`, for example `/cct:sdlc-run` or `/cct:ux-review`.
 
 ## Install
 
 ```bash
-claude plugin marketplace add cdudek/calvin-sdlc
+claude plugin marketplace add cdudek/calvins-claude-tools
 claude plugin install cct@cct
 ```
 
-Inside a session: `/plugin marketplace add cdudek/calvin-sdlc`, then `/plugin install cct@cct`. Restart Claude Code afterwards so the hooks load.
+Inside a session: `/plugin marketplace add cdudek/calvins-claude-tools`, then `/plugin install cct@cct`. Restart Claude Code afterwards so the hooks load.
 
 Update later:
 

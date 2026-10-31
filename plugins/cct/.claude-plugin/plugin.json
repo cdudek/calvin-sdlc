@@ -3,6 +3,6 @@
   "version": "0.2.0",
   "description": "Calvin's Claude Tools: the AI-native SDLC (intent, UX plan, facts, tech plan, one /goal build per milestone, review-fix loop, E2E, release) with the UX suite it runs, a project kickoff for brand, design system and context, and the Docker + GitHub Actions blueprint.",
   "author": { "name": "Calvin Dudek" },
-  "repository": "https://github.com/cdudek/calvin-sdlc",
+  "repository": "https://github.com/cdudek/calvins-claude-tools",
   "keywords": ["sdlc", "ux", "code-review", "e2e", "design-system", "ci-cd"]
 }
