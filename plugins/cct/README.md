@@ -55,7 +55,7 @@ curl -fsSL https://plannotator.ai/install.sh | bash
 
 ## Rebuild from the sources
 
-`scripts/build.py` regenerates `plugins/cct/` from the OMR AI Kit (latest `master`), the installed public plugins and the HeyDiff repos, keeps only what `sdlc-run` and `project-kickoff` reach, and lays `overlay/` (the hand-written files) on top. Edit hand-written files in `overlay/`, never in `plugins/cct/`.
+`scripts/build.py` regenerates `plugins/cct/` from the OMR AI Kit (latest `master`), the installed public plugins and the HeyDiff repos, keeps only what `sdlc-run` and `project-kickoff` reach, and lays `overlay/` (the hand-written files) on top. A skill folder in `overlay/skills/` replaces the upstream skill whole. `sdlc-run` lives there: it is maintained here, without the kit's path-based merge rules, so the PR into the default branch gets the milestone checks and the Claude review, and then merges by the repo's own branch protection. Edit hand-written files in `overlay/`, never in `plugins/cct/`.
 
 ```bash
 python3 scripts/build.py

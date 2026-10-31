@@ -16,7 +16,7 @@
   "blocked": [
     {
       "match": "(^|[[:space:];&|(])(pnpm|yarn)([[:space:]]+[^[:space:];&|]+)*[[:space:]]+(add|remove)([[:space:]]|$)|(^|[[:space:];&|(])npm([[:space:]]+[^[:space:];&|]+)*[[:space:]]+(i|install|uninstall)[[:space:]]+[^-[:space:]]",
-      "message": "dependency changes are Ask-tier: a human adds the package in a branch and commits package.json + the lockfile; the PR gets the ask label. Say which package and why, then stop.",
+      "message": "dependency changes are a human's: a human adds the package in a branch and commits package.json + the lockfile. Say which package and why, then stop.",
       "samples": [
         "pnpm add x",
         "yarn add y",
@@ -29,12 +29,9 @@
   ],
   "toolsCommand": "npm run sdlc:tools",
   "tests": "vitest",
-  "codeowners": [],
   "claude": false,
   "claudeAllow": ["Bash(npm *)", "Bash(git:*)", "Bash(gh pr:*)"],
-  "showChannel": "",
   "keep": [],
-  "tiers": false,
   "kitTemplates": "8165782d8151",
   "tracker": {
     "kind": "beads",

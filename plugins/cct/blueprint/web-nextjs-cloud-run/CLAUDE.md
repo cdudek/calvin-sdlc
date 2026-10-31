@@ -40,10 +40,10 @@ A `project/<slug>` branch exists only for work spanning several milestones; one 
 needs none.
 
 **Only the PR into the default branch is reviewed.** Feature PRs into `milestone/*` and
-milestone PRs into `project/*` are interior merges inside one change — no Claude review, no
-code owner, auto-merge on their checks alone.
+milestone PRs into `project/*` are interior merges inside one change: no Claude review,
+auto-merge on their checks alone.
 
-There are no Ship/Show/Ask tiers here, so that PR auto-merges on green too.
+That PR merges by the repo's own branch protection: auto-merge on green.
 
 New keys: `checks`, `milestones`, `projects`, `hotfix`, `goal`, `languages`, `responsiveTier`,
 `ux`, `protected`. The reference is

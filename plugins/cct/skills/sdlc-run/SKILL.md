@@ -6,7 +6,7 @@ description: >-
   branch and closes the milestone with the heavy checks once and one PR (one go, the default;
   per-feature PRs remain as an option). Work
   spanning several milestones adds a project branch between the milestones and the trunk; only
-  the PR into the default branch is reviewed and tiered. Use when someone starts or continues a
+  the PR into the default branch is reviewed. Use when someone starts or continues a
   feature, bug fix, refactor, docs change, chore, hotfix, milestone or project, asks "how do we
   do X here", or says "run sdlc", "adopt sdlc", "sdlc status". Subcommands: "adopt" installs the
   chain, "status" lists open changes and gates.
@@ -32,7 +32,7 @@ effort: high
 7 Outcome + archive: archive on merge, read the success measure after release
 
 Branches: <default> ─ [project/<slug>] ─ milestone/<slug> ─ features
-          only the PR into <default> is reviewed and tiered
+          only the PR into <default> is reviewed
 ```
 
 One change folder `changes/<YYYY-MM-DD>[-<KEY>]-<slug>/` holds intent, `spec/`, facts, plan,
@@ -84,9 +84,9 @@ The user input is: $ARGUMENTS
 | 2 UX plan | `cct:ux-design` (brief, IA, interaction, screens), `cct:ux-sitemap-create diff`, `cct:ux-conformance spec` (components: exists / adapt / new, with paths), `cct:microcopy-write`, then `cct:ux-validate spec` as **one pass**, its findings into the plan. Size `none` or `ux: off` skips; size S does components and words only. Prototype images only when the plan marks the UI risky: `cct:designs-explore spec`. | none |
 | 3 Facts | Drafted after the UX plan. Each fact cites asks, names its screen or state, and names the E2E tag that proves it. `verify_gate.py lint` on intent, facts and plan. | none |
 | 4 Tech plan | `plan.md`: Where things go, Feature PRs, Done, Goal handover; `done.json` holds the criteria as data. Call when relevant: `architecture-review`, `data-model-create`, `api-design`, `security-review`, `dependency-review`, `tracking-apply` (the success-measure events). | **One gate for UX plan + facts + plan**, then `verify_gate.py approve` |
-| 5 Build | **One go (default):** one `/goal` (`templates/goal/run.txt`) builds every milestone of the plan in order, each on `milestone/<slug>-<n>` cut from the previous one: per feature, write its tests, build, commit, next feature at once. **No check, lint or test runs per feature or commit.** Open questions go to `questions.md` with the default taken and never block; answers become asks of the next milestone. Then Stage 6 for that milestone in the same goal. **Feature PRs:** per feature, inside `/goal` (`templates/goal/feature.txt`): `e2e-write`, `e2e-test-run` on the feature tags, `flaky-test-fix`; bugs via `behavior-test-writer` → locked test → `fix-implementer`; `verify_gate.py feature`; `pr-create --base milestone/<slug>`; `cct:ux-review` on that PR's screens, its Critical and High fixed before auto-merge is armed. No Claude review and no tier on this PR — it is interior. When it merges, the next feature starts. | none |
+| 5 Build | **One go (default):** one `/goal` (`templates/goal/run.txt`) builds every milestone of the plan in order, each on `milestone/<slug>-<n>` cut from the previous one: per feature, write its tests, build, commit, next feature at once. **No check, lint or test runs per feature or commit.** Open questions go to `questions.md` with the default taken and never block; answers become asks of the next milestone. Then Stage 6 for that milestone in the same goal. **Feature PRs:** per feature, inside `/goal` (`templates/goal/feature.txt`): `e2e-write`, `e2e-test-run` on the feature tags, `flaky-test-fix`; bugs via `behavior-test-writer` → locked test → `fix-implementer`; `verify_gate.py feature`; `pr-create --base milestone/<slug>`; `cct:ux-review` on that PR's screens, its Critical and High fixed before auto-merge is armed. No Claude review on this PR: it is interior. When it merges, the next feature starts. | none |
 | 6 Milestone | Inside `/goal` (the same one in one go; `templates/goal/milestone.txt` for feature PRs), on the milestone diff only, in parallel: `cct:ux-review`, `pr-review` + `review-fix-loop 1` (one round), `responsive-audit` full matrix, states, `accessibility-audit`, the full E2E suite once, ×3 only for changed and flaky specs (`../e2e-test-run/references/suite-speed-and-reliability.md` section G), `cct:ux-audit` when a screen is new, **validation**: every fact and ask exercised in the built app into `validation.md` (expected, observed, evidence, verdict; `not met` blocks), `cct:ux-validate build`, the `verifier` and `ac-auditor` agents for jobs and facts, `security-review` when auth, money or consent is touched. One findings list, one fix round, `verify_gate.py milestone`, one PR **to the milestone's parent** — `project/<slug>` in a project, else the default branch. | **Engineer accepts the milestone** (one go: only when a Critical or High would be deferred) |
-| 6p Project | Only in a project, and only once every milestone has merged into `project/<slug>`: rebase it on the default branch, re-run `checks.milestone` on the whole project diff, then one PR to the default branch. This is the PR CI reviews and tiers. No second fix round — what is left starts the next project. | **Engineer accepts the project** |
+| 6p Project | Only in a project, and only once every milestone has merged into `project/<slug>`: rebase it on the default branch, re-run `checks.milestone` on the whole project diff, then one PR to the default branch. This is the PR CI reviews. No second fix round; what is left starts the next project. | **Engineer accepts the project** |
 | 7 Outcome + archive | Archive the folder when the change reaches the default branch. After release, read the success measure from PostHog into `milestone.md`. A miss starts the next change at 1.3. | Engineer reads it |
 
 Every step, input, output, skip and failure mode: `references/stages.md`. A step whose skill is
@@ -156,19 +156,19 @@ Two shapes. **One milestone** is the default and is unchanged:
   (`references/stages.md` → Wall clock).
 - Milestone of one: one change, both checks. Hotfix: `--base <defaultBranch>`, feature checks only.
 
-### Only the PR into `<defaultBranch>` is reviewed and tiered
+### Only the PR into `<defaultBranch>` is reviewed
 
 Everything below the trunk is an **interior merge inside one change**: a feature PR into
 `milestone/*`, a milestone PR into `project/*`. Those carry code that has not reached anyone
 yet, and they auto-merge on their checks alone.
 
-| PR | Checks | Claude review | Ship/Show/Ask | Who approves |
-|---|---|---|---|---|
-| feature → `milestone/*` | `checks.feature` | no | no | nobody; auto-merge on green |
-| milestone → `project/*` | `checks.milestone` | no | no | nobody; auto-merge on green |
-| `project/*` or `milestone/*` → `<defaultBranch>` | `checks.milestone` | **yes** | **yes** | the tier decides |
+| PR | Checks | Claude review | Merge |
+|---|---|---|---|
+| feature → `milestone/*` | `checks.feature` | no | auto-merge on green |
+| milestone → `project/*` | `checks.milestone` | no | auto-merge on green |
+| `project/*` or `milestone/*` → `<defaultBranch>` | `checks.milestone` | **yes**, unless `sdlc.json` `claude` is `false` | the repo's branch protection; auto-merge on green |
 
-Both CI workflows enforce this themselves, by comparing
+The Claude review workflow enforces this itself, by comparing
 `github.event.pull_request.base.ref` with the repository's default branch — so the rule holds
 even for a PR opened by hand. Reviewing every interior PR re-reads the same diff two or three
 times on its way up and costs ~$1 each time; the integration PR is where the whole change is
@@ -203,6 +203,5 @@ first seen as one thing, and that is where it is read.
 - `references/chain.md` — folder layout, decisions, frontmatter, `sdlc.json` keys, history.
 - `references/requirements-grammar.md` — EARS and Gherkin grammar for `facts.md`.
 - `references/adopt.md` — what `adopt` writes, what stays manual, migrations.
-- `references/tiers.md` — Ship / Show / Ask by path.
 - `references/playbook.md` — playbook mapping and metrics.
 - `references/layout-research.md` — why `changes/` plus archive.

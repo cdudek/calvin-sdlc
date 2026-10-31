@@ -1,7 +1,6 @@
 # adopt — install the chain into a repo
 
-**Re-run it whenever the kit moves.** `adopt` copies hooks, workflows, the tiers classifier
-and the guardrail test into the repo, because CI runs them on a GitHub runner where no
+**Re-run it whenever the kit moves.** `adopt` copies hooks, workflows and the guardrail test into the repo, because CI runs them on a GitHub runner where no
 plugin is installed. The copies are what actually enforce the rules, and they do not update
 themselves. `adopt` stamps `kitTemplates` in `sdlc.json` with a fingerprint of the templates
 it copied; `status.sh` compares it against the installed kit and prints `templates=stale`.
@@ -15,27 +14,26 @@ prettier installed, nothing happens.
 
     python3 ${CLAUDE_SKILL_DIR}/scripts/adopt.py [--dry-run] [--preset node|python] [--ticket KEY-123]
 
-Run from the repo root, on a branch. Idempotent: rerun after editing `sdlc.json` or
-`tiers.json`, or after a kit update. Read the three sections; relay **MANUAL** to the user.
+Run from the repo root, on a branch. Idempotent: rerun after editing `sdlc.json`, or after a kit
+update. Read the three sections; relay **MANUAL** to the user.
 
 | Generated every run (edit the source, not the file) | Created once, then kept |
 |---|---|
 | `.claude/hooks/*.sh` (6) | `sdlc.json` (from the preset) |
-| the SDLC entries in `.claude/settings.json` | `.github/tiers.json` (preset defaults; only while `tiers` is not `false`) |
-| `.github/CODEOWNERS` (from `codeowners` × `ask`; removed when nobody is named or `tiers` is `false`) | `REVIEW.md` |
-| `.github/workflows/{ship-show-ask,claude-review,claude,ci-triage}.yml` (the first only while `tiers` is not `false`, the last three only while `claude` is not `false`) | `CLAUDE.md` section (appended once) |
-| `scripts/ship_show_ask.py` (only while `tiers` is not `false`) | the "Repo-specific" tail of `docs/sdlc.md` |
-| `docs/sdlc.md` above the marker | the first change folder |
-| the guardrail test | `.github/ISSUE_TEMPLATE/{feature,bug,spike,simple-task}.md` + `config.yml` |
+| the SDLC entries in `.claude/settings.json` | `REVIEW.md` |
+| `.github/workflows/{claude-review,claude,ci-triage}.yml` (only while `claude` is not `false`) | `CLAUDE.md` section (appended once) |
+| `docs/sdlc.md` above the marker | the "Repo-specific" tail of `docs/sdlc.md` |
+| the guardrail test | the first change folder |
+|  | `.github/ISSUE_TEMPLATE/{feature,bug,spike,simple-task}.md` + `config.yml` |
 |  | `.github/PULL_REQUEST_TEMPLATE.md` |
 |  | anything in `sdlc.json` `keep` |
 
-**One owner? Set `tiers: false` in `sdlc.json`.** Ship/Show/Ask needs a second person to
-ask and to show. With one owner, `adopt` writes none of the four tier files and removes any
-that exist (`git rm`). `docs/sdlc.md` then says "auto-merge on green" instead of the tiers,
-and MANUAL drops the App secrets, `SDLC_COOWNER`, the Slack token and the CODEOWNERS ruleset
-note. You arm `gh pr merge <n> --squash --auto` on each PR yourself. `claude` is a separate
-switch: `tiers: false` keeps the Claude review.
+**Merging follows the repo's own branch protection.** The PR into the default branch gets the
+milestone checks and, while `claude` is not `false`, the Claude review; it auto-merges once the
+required checks are green (`gh pr merge <n> --squash --auto`). Interior PRs into `milestone/*`
+and `project/*` auto-merge on their checks alone. `adopt` no longer installs any path-based
+merge rules, and removes the ones an earlier version installed (the generated CODEOWNERS only
+when it still carries adopt's header; anything in `keep` stays).
 
 The four issue templates mirror the Linear templates in `cct:linear-manage`, so an issue reads
 the same whichever tracker it started in. They are kept once written — a team that adds a field to
@@ -58,9 +56,7 @@ table, which is what makes `F1` traceable from `facts.md` through the test to th
 ## After the script
 
 1. Read `sdlc.json` with the user: `linear.team` / `project`, `verify`, `verifyStop`,
-   `planGate`, `testGlobs`, `prototypeDirs`, `feedback`, `blocked`, `codeowners`, `tiers`,
-   `claude`, `keep`. Read `.github/tiers.json` (skip it with
-   `tiers: false`): the `ask` globs must name what really hurts here (migrations, integrations that write, cluster, workflows, deps, the rules).
+   `planGate`, `testGlobs`, `prototypeDirs`, `feedback`, `blocked`, `claude`, `keep`.
 2. Add the tools target (`toolsCommand`) — Makefile `sdlc-tools` or package.json
    `sdlc:tools`; the commands are in `docs/sdlc.md` "Install once per machine".
 3. The first change (`changes/<today>-<KEY>-adopt-sdlc/`, no key when you adopt without a
@@ -68,14 +64,13 @@ table, which is what makes `F1` traceable from `facts.md` through the test to th
    archive it when the PR is green.
 4. Run `verify` and the guardrail test. Stage everything (`git ls-files` is part of the
    test). Commit `feat(sdlc): adopt the chain`.
-5. GitHub, by the user: secrets `ANTHROPIC_API_KEY` (org), `CODE_MANAGER_APP_CLIENT_ID`,
-   `CODE_MANAGER_APP_PRIVATE_KEY`; variable `SDLC_COOWNER`; optional
-   `SDLC_SLACK_BOT_TOKEN`; ruleset on the default branch per `references/tiers.md`. With
-   `tiers: false` only `ANTHROPIC_API_KEY` and the ruleset's required checks.
-6. The adoption PR is `ask` (`.github/**`, `.claude/**`): a human merges it. With
-   `tiers: false`, arm auto-merge on it like on any other PR.
+5. GitHub, by the user: secret `ANTHROPIC_API_KEY` (org) while `claude` is not `false`;
+   "Allow auto-merge" on; a ruleset on the default branch that requires CI and `merge-gate`.
+   Keep `strict_required_status_checks_policy` off (auto-merge never rebases a `BEHIND` PR)
+   and `required_review_thread_resolution` off (review nits are advisory).
+6. Arm auto-merge on the adoption PR like on any other PR.
 7. The CLAUDE.md section it appended states the process and `/goal`; if the repo's
-   CLAUDE.md said "ask before merging", change it to "the tier decides".
+   CLAUDE.md said "ask before merging", change it to "auto-merge on green".
 
 ## A repo that already ran the old `goals/` skill
 

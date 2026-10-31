@@ -75,7 +75,7 @@ Two words used to collide, so they are fixed here: the playbook's `spec.md` is o
 | `testLocked` | only for bugs. Set true after the failing test is committed. |
 | `testEdit` | user words that allow a locked test edit. |
 | `milestone` | `{"kind": "new"\|"existing"\|"single"\|"hotfix", "slug"}`. Its presence marks a folder on the milestone process. |
-| `project` | `{"kind": "new"\|"existing", "slug"}`, or **absent**. Absent is the normal case: the milestone is cut from the default branch and its PR goes there. Present means the milestone is cut from `project/<slug>` and its PR goes there instead, and the project branch is what later opens the one reviewed, tiered PR into the default branch. |
+| `project` | `{"kind": "new"\|"existing", "slug"}`, or **absent**. Absent is the normal case: the milestone is cut from the default branch and its PR goes there. Present means the milestone is cut from `project/<slug>` and its PR goes there instead, and the project branch is what later opens the one reviewed PR into the default branch. |
 | `protectedEdit` | the engineer's words that allow one edit of a protected path after approval. |
 
 Three processes live side by side, chosen by the folder, never by the date:
@@ -309,12 +309,8 @@ permalinks; local laptop paths are refused.
 | `blocked[]` | Bash hook, tests | blocked shell patterns with routes |
 | `toolsCommand` | SessionStart, docs | installs plannotator and plugin |
 | `tests`, `testFile` | adopt | rendered guardrail test type and path |
-| `codeowners` | adopt | generated CODEOWNERS owners |
 | `claude` | adopt, test | whether Claude workflows are generated |
 | `claudeAllow` | adopt | extra tools for `claude.yml` |
-| `showChannel` | adopt | Slack channel for show notices |
-| `tiers` | adopt, test, docs | Ship / Show / Ask on or off |
-| `askGatesMerge` | adopt | whether `ask` withholds auto-merge |
 | `keep` | adopt | generated paths this repo owns |
 | `checks.feature[]`, `checks.milestone[]` | `verify_gate.py` | commands, cheapest first; `{id}` is the change id; a string or `{name, run}` |
 | `milestones` | skill | `{branchPrefix, rebaseOnDefault}`; default `milestone/`, `true`. A milestone is cut from its parent: the project branch when the change has one, else the default branch |

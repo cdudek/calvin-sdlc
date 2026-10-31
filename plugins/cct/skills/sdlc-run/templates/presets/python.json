@@ -19,7 +19,7 @@
   "blocked": [
     {
       "match": "(^|[[:space:];&|(])(uv([[:space:]]+[^[:space:];&|]+)*[[:space:]]+(add|remove)|pip3?([[:space:]]+[^[:space:];&|]+)*[[:space:]]+install)([[:space:]]|$)",
-      "message": "dependency changes are Ask-tier: a human runs uv add in a branch and commits pyproject.toml + uv.lock; the PR gets the ask label. Say which package and why, then stop.",
+      "message": "dependency changes are a human's: a human runs uv add in a branch and commits pyproject.toml + uv.lock. Say which package and why, then stop.",
       "samples": [
         "uv add httpx",
         "uv remove httpx",
@@ -42,7 +42,6 @@
   ],
   "toolsCommand": "make sdlc-tools",
   "tests": "pytest",
-  "codeowners": [],
   "claude": true,
   "claudeAllow": [
     "Bash(uv sync:*)",
@@ -51,7 +50,6 @@
     "Bash(git:*)",
     "Bash(gh pr:*)"
   ],
-  "showChannel": "",
   "keep": [],
   "milestones": {
     "branchPrefix": "milestone/",

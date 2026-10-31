@@ -16,7 +16,7 @@ stage ends by committing an artifact, the commit starts the next stage, humans s
 | Test | Feedback loop | `verifyStop`, `cct:ux-validate build`, locked bug tests, full `verify` before PR | hook and PR checks | stop checks stay fast | CI success and change failure rate |
 | Test | Continuous evals in CI | not yet — needs 20+ collected tasks | pass-rate threshold | eval pass rate | regressions caught in CI vs prod |
 | Deploy | AI in PR review | `REVIEW.md` compliance pass, `claude-review.yml`, `merge-gate` | branch protection | time to first review | defects caught at merge vs escaped |
-| Deploy | Hooks as approval gates · CI/CD | `gate-bash.sh`, `chain-gate.sh`, Ship / Show / Ask, CI triage | tiers and ruleset | pipeline failures triaged without paging | DORA |
+| Deploy | Hooks as approval gates · CI/CD | `gate-bash.sh`, `chain-gate.sh`, auto-merge on green, CI triage | ruleset | pipeline failures triaged without paging | DORA |
 | Maintain | Closing the loop | `sdlc.json.feedback` files become Stage 1.3 asks in the next change | owner triage | feedback → ask table | findings that become merged fixes |
 
 Rules worth quoting at the gates:

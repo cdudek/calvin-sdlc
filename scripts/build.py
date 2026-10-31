@@ -281,6 +281,10 @@ for cmd, agent in (("review-pr", "pr-review-toolkit-code-reviewer"), ("feature-d
 
 # ── Hand-written files, the skill map, the README ────────────────────────────
 assert not (OUT / "skills/project-kickoff").exists()
+# A skill in overlay/ replaces the upstream copy whole, so files dropped from it stay dropped
+# (sdlc-run: hand-maintained here, without the kit's path-based merge rules).
+for d in (REPO / "overlay/skills").iterdir():
+    shutil.rmtree(OUT / "skills" / d.name, ignore_errors=True)
 shutil.copytree(REPO / "overlay", OUT, dirs_exist_ok=True)
 shutil.copy2(REPO / "README.md", OUT / "README.md")
 # ── Keep only what the SDLC reaches: sdlc-run and project-kickoff, followed through every reference ──

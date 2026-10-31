@@ -145,7 +145,7 @@ Where ArgoCD would act, the workflow acts instead:
 - **Self-heal** is an automatic traffic switch back to the revision that served before, when the check after promotion fails.
 - **Drift** is Terraform's drift workflow in heydiff-terraform; Terraform ignores the image and traffic, which CI owns.
 
-No ship, show or ask: every PR auto-merges on green (`sdlc.json` `tiers: false`).
+Every PR auto-merges on green under the repo's branch protection.
 
 Authentication is Workload Identity Federation, no keys: provider `projects/381767146697/locations/global/workloadIdentityPools/heydiff-github-shared/providers/heydiff-github-shared`, service account `heydiff-web-deploy-shared@heydiff.iam.gserviceaccount.com`. Staging is private: CI calls it with an identity token, people sign in with an allowed Google account. Production is public.
 

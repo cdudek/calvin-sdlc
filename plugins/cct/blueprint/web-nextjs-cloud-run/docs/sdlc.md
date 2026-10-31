@@ -67,7 +67,7 @@ none.
 | `planGate`                                               | `owner` or `self`; self is barred for data safety, irreversible writes, security or money                              |
 | `testGlobs`, `prototypeDirs`, `feedback`                 | locked tests, prototype paths, owner-words files                                                                       |
 | `verifyDirty`, `lintOnEdit`, `blocked[]`                 | hook inputs                                                                                                            |
-| `tiers`, `askGatesMerge`, `codeowners`, `claude`, `keep` | generated workflow policy                                                                                              |
+| `claude`, `keep`                                         | generated workflow policy                                                                                              |
 
 ## Where a change stands
 
@@ -113,7 +113,13 @@ Run `marks.py init <id>` for Snapmark/reference images; fill `marks.json` agains
 
 ## Merging: auto-merge on green
 
-One owner, so no tiers (`sdlc.json` `tiers: false`). Every PR merges itself once it is green.
+**Only the PR into the default branch is reviewed.** A feature PR into `milestone/*`, and a
+milestone PR into `project/*`, are interior merges inside one change: they auto-merge on their
+checks alone, with no Claude review. The review workflow checks the PR's base ref itself, so
+this holds for a hand-opened PR too.
+
+The PR into the default branch gets the milestone checks and, while `sdlc.json` `claude` is not
+`false`, the Claude review. It then merges by this repo's own branch protection.
 
 - **Arm it:** `gh pr merge <n> --squash --auto`.
 - **What it waits for:** required checks on `main`.
