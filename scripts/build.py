@@ -1,12 +1,12 @@
-"""Builds the calvin-sdlc plugin: copies every skill, agent, command and hook it needs into one
-self-contained plugin, renames on collision, and rewrites `plugin:name` references to `calvin-sdlc:<new>`."""
+"""Builds the cct plugin (Calvin's Claude Tools): copies every skill, agent, command and hook it needs into one
+self-contained plugin, renames on collision, and rewrites `plugin:name` references to `cct:<new>`, then keeps only what sdlc-run reaches."""
 import json, os, re, shutil, subprocess, sys
 from pathlib import Path
 
 import tempfile
 
 REPO = Path(__file__).resolve().parent.parent
-OUT = REPO / "plugins/calvin-sdlc"
+OUT = REPO / "plugins/cct"
 TMP = Path(tempfile.mkdtemp())
 # The OMR AI Kit at its latest master, not whatever the local checkout has
 KIT_REPO = Path.home() / "projects/omr/omr-ai-kit"
@@ -16,7 +16,7 @@ KIT = TMP / "plugins"
 C = Path.home() / ".claude/plugins/cache"
 HOME = Path.home()
 HD = HOME / "projects/heydiff"
-P = "calvin-sdlc"
+P = "cct"
 
 shutil.rmtree(OUT, ignore_errors=True)
 OUT.mkdir(parents=True)
@@ -194,7 +194,7 @@ for stale in ("hooks.json", "superpowers/hooks.json", "superpowers/hooks-cursor.
 for n in ("worktree-create.sh", "worktree-remove.sh"):
     shutil.copy2(HOME / ".claude/hooks" / n, OUT / "hooks" / n)
 
-# ── Rewrite references: plugin:name → calvin-sdlc:new, plugin paths → calvin-sdlc ──
+# ── Rewrite references: plugin:name → cct:new, plugin paths → cct ──
 by_origin = {}
 for (origin, kind, name), new in names.items():
     by_origin.setdefault(origin, {})[name] = new
@@ -283,13 +283,57 @@ for cmd, agent in (("review-pr", "pr-review-toolkit-code-reviewer"), ("feature-d
 assert not (OUT / "skills/project-kickoff").exists()
 shutil.copytree(REPO / "overlay", OUT, dirs_exist_ok=True)
 shutil.copy2(REPO / "README.md", OUT / "README.md")
-rows = ["# Skill map", "", "Where every skill, agent and command in this plugin came from. Call each one as `calvin-sdlc:<name>`.", ""]
+# ── Keep only what the SDLC reaches: sdlc-run and project-kickoff, followed through every reference ──
+DROP = {"brand", "tone-of-voice", "vue-code-write"}  # OMR's own brand and voice; Vue is not in the stack
+have_s = {d.name for d in (OUT / "skills").iterdir()}
+have_a = {f.stem for f in (OUT / "agents").iterdir()}
+keep, queue = set(), [("skill", "sdlc-run"), ("skill", "project-kickoff")]
+while queue:
+    kind, n = queue.pop()
+    if (kind, n) in keep or n in DROP:
+        continue
+    keep.add((kind, n))
+    paths = list((OUT / "skills" / n).rglob("*")) if kind == "skill" else [OUT / "agents" / f"{n}.md"]
+    for f in paths:
+        try:
+            t = f.read_text()
+        except (UnicodeDecodeError, OSError, IsADirectoryError):
+            continue
+        for m in re.findall(rf"{P}:([a-z0-9][a-z0-9-]*)", t) + re.findall(r"skills/([a-z0-9][a-z0-9-]*)/", t):
+            if m in have_s:
+                queue.append(("skill", m))
+            elif m in have_a:
+                queue.append(("agent", m))
+        for a in have_a:  # agents are dispatched by their bare, hyphenated names too
+            if "-" in a and re.search(rf"(?<![\w-]){re.escape(a)}(?![\w-])", t):
+                queue.append(("agent", a))
+for d in (OUT / "skills").iterdir():
+    if ("skill", d.name) not in keep:
+        shutil.rmtree(d)
+for f in (OUT / "agents").iterdir():
+    if ("agent", f.stem) not in keep:
+        f.unlink()
+shutil.rmtree(OUT / "commands")
+for extra in ("hooks/superpowers", "hooks/security-guidance"):
+    shutil.rmtree(OUT / extra)
+(OUT / ".mcp.json").unlink()
+shutil.rmtree(OUT / "references/claude-setup")  # only the dropped claude-setup skills read it
+(OUT / "hooks/hooks.json").write_text((KIT / "omr-dev/hooks/hooks.json").read_text())
+kept_origins = {o for (o, k, n), new in names.items() if (k, new) in keep}
+for d in licenses.iterdir():
+    if d.name not in kept_origins:
+        shutil.rmtree(d)
+names = {key: new for key, new in names.items() if (key[1], new) in keep}
+renames = []
+print(f"kept: {sum(k == 'skill' for k, _ in keep)} skills, {sum(k == 'agent' for k, _ in keep)} agents")
+
+rows = ["# Skill map", "", "Where every skill, agent and command in this plugin came from. Call each one as `cct:<name>`.", ""]
 if renames:
     rows += ["Renamed because two sources used the same name:", ""] + [f"- {r}" for r in renames] + [""]
 rows += ["| Name | Kind | Source |", "| --- | --- | --- |"]
 for (origin, kind, name), new in sorted(names.items(), key=lambda kv: (kv[0][1], kv[1])):
     rows.append(f"| `{new}` | {kind} | {origin}:{name} |")
-rows.append("| `project-kickoff` | skill | calvin-sdlc |")
+rows.append("| `project-kickoff` | skill | cct |")
 (OUT / "docs/skill-map.md").write_text("\n".join(rows) + "\n")
 shutil.rmtree(TMP)
 print("overlay applied:", OUT)

@@ -27,7 +27,7 @@ Create a private repo `<product>-context` (no code). Its `CLAUDE.md` is the inde
 | `strategy/YYYY-MM-DD-<topic>.md` | one dated file per strategic decision (name, hosting, pricing, scope) |
 | `glossary.md` | one name per thing, the words users see, words to avoid, German and English |
 
-Interview the owner for what only they know (who it is for, why now, what it must never become). Research the rest. Useful skills here: `calvin-sdlc:user-persona`, `calvin-sdlc:jobs-to-be-done`, `calvin-sdlc:journey-map`, `calvin-sdlc:competitive-analysis`, `calvin-sdlc:north-star-vision`, `calvin-sdlc:design-principles`. `calvin-sdlc:impeccable` with `init` writes `PRODUCT.md` through an interview.
+Interview the owner for what only they know (who it is for, why now, what it must never become). Research the rest. `cct:jobs-to-be-done` structures the job, `cct:design-brief` the problem, audience, constraints and success criteria.
 
 Gate: the owner confirms PRODUCT.md, the audiences and the glossary.
 
@@ -46,15 +46,15 @@ Sections, in this order:
 
 Export it in forms both people and agents read: `brand-guide.md` (all pages as text), `implementation-brief.md` (what a coding agent needs to build the design system), `llms.txt` (an index for other agents), `decisions.md` (dated choices), `tokens/tokens.json` and `tokens/tokens.css`, `manifest.json`, and a PDF.
 
-Useful skills: `calvin-sdlc:ui-ux-pro-max` (palettes, font pairings, styles), `calvin-sdlc:design`, `calvin-sdlc:ui-ux-pro-max-brand`, `calvin-sdlc:color-system`, `calvin-sdlc:typography-scale`, `calvin-sdlc:spacing-system`, `calvin-sdlc:dark-mode-design`, `calvin-sdlc:tone-of-voice` for the voice page's structure, `calvin-sdlc:designs-explore` to generate high-resolution options of the key pages.
+Use `cct:design-consult` for the design-system decisions (library, palette, type, density), `cct:layout-grid` for the grid and breakpoints, `cct:ux-writing` for the voice page, and `cct:designs-explore` to generate high-resolution options of the key pages for the owner to pick from.
 
 Gate: the owner picks the logo, palette, type and voice, and signs off the guide.
 
 ## Stage 3: the design system
 
 1. Create `<product>-kit` from `blueprint/design-system-kit-heroui/`: packages for `tokens`, `ui` (wrappers on HeroUI v3 or MUI, themed with the tokens) and `contracts` (shared types), published to GitHub Packages, with Storybook in light and dark.
-2. Build it from `implementation-brief.md`, token by token, component by component. Use `calvin-sdlc:design-system-apply`, `calvin-sdlc:design-token`, `calvin-sdlc:theming-system`, `calvin-sdlc:component-spec`.
-3. Write `DESIGN.md` in the kit (and point every app repo at it): the visual direction, the tokens and their meaning, the components and when to use each, motion, accessibility targets. `calvin-sdlc:impeccable` records it from the built kit.
+2. Build it from `implementation-brief.md`, token by token, component by component. Use `cct:design-system-apply`, and `cct:state-machine` for components with several states.
+3. Write `DESIGN.md` in the kit (and point every app repo at it): the visual direction, the tokens and their meaning, the components and when to use each, motion, accessibility targets. Check it against the built kit with `cct:accessibility-audit` and `cct:responsive-audit`.
 
 Gate: the owner reviews Storybook.
 
@@ -62,13 +62,13 @@ Gate: the owner reviews Storybook.
 
 Every repo that has screens gets `docs/ux/`. The ux skills read and write these files, so they live with the code. Examples: `examples/heydiff/web/docs/ux/` and `examples/heydiff/desktop/docs/ux/`.
 
-- `setup.md`: product, audience, design rules, screens, how to run the app, what is read only. Written by `calvin-sdlc:ux-init`.
+- `setup.md`: product, audience, design rules, screens, how to run the app, what is read only. Written by `cct:ux-init`.
 - `owner-words.md`: the owner's own words about the product, quoted and dated.
-- `sitemap.md` and `sitemap.json`: the information architecture, every page, how people reach it, Back, breadcrumbs, states. Planned from the job stories with `calvin-sdlc:ux-sitemap-create` before the routes exist.
-- `interaction-guidelines.md`: how the whole app behaves (editing, saving, dialogs and panels, feedback, confirmation and undo, navigation, lists, keyboard), with examples and an enforcement map. `calvin-sdlc:ux-guidelines`.
+- `sitemap.md` and `sitemap.json`: the information architecture, every page, how people reach it, Back, breadcrumbs, states. Planned from the job stories with `cct:ux-sitemap-create` before the routes exist.
+- `interaction-guidelines.md`: how the whole app behaves (editing, saving, dialogs and panels, feedback, confirmation and undo, navigation, lists, keyboard), with examples and an enforcement map. `cct:ux-guidelines`.
 - `glossary-proposal.md`: the UI vocabulary, aligned with the context repo's glossary.
 - `states-contract.md`: loading, empty, error and offline for every screen.
-- `decisions.md`: accepted UX decisions, from `calvin-sdlc:ux-decision`.
+- `decisions.md`: accepted UX decisions, from `cct:ux-decision`.
 
 Gate: the owner accepts the sitemap and the interaction guidelines.
 
@@ -77,6 +77,6 @@ Gate: the owner accepts the sitemap and the interaction guidelines.
 1. One repo per product surface: `<product>-web`, `<product>-desktop`, `<product>-chrome`, `<product>-mobile`, plus `<product>-terraform`. Pick the stack from `${CLAUDE_PLUGIN_ROOT}/docs/stack.md`.
 2. Copy CI/CD from `${CLAUDE_PLUGIN_ROOT}/blueprint/` (read its README first; swap the GCP parts if the target cloud differs).
 3. Each repo's `CLAUDE.md` imports the context repo's `CLAUDE.md` and names its `DESIGN.md` and `docs/ux/`.
-4. Run `calvin-sdlc:sdlc-run adopt` in each repo, then start the first milestone with `calvin-sdlc:sdlc-run`.
+4. Run `cct:sdlc-run adopt` in each repo, then start the first milestone with `cct:sdlc-run`.
 
-From here on, every change goes through the SDLC: `calvin-sdlc:ux-design` before building a new screen, `calvin-sdlc:ux-review` and `calvin-sdlc:pr-review` on every UI PR, `calvin-sdlc:ux-audit` after each milestone.
+From here on, every change goes through the SDLC: `cct:ux-design` before building a new screen, `cct:ux-review` and `cct:pr-review` on every UI PR, `cct:ux-audit` after each milestone.

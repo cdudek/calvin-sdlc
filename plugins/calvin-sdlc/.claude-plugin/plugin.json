@@ -1,7 +1,0 @@
-{
-  "name": "calvin-sdlc",
-  "version": "0.1.0",
-  "description": "Calvin's AI-native SDLC: intent, UX plan, facts and tech plan, one /goal build per milestone, review-fix loop, E2E, release. Includes the UX suite, review toolkits, project kickoff (brand, design system, context) and the Docker + GitHub Actions blueprint.",
-  "author": { "name": "Calvin Dudek" },
-  "keywords": ["sdlc", "ux", "code-review", "e2e", "design-system", "ci-cd"]
-}

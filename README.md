@@ -1,45 +1,36 @@
-# calvin-sdlc
+# cct: Calvin's Claude Tools
 
-Calvin's AI-native software development lifecycle as one Claude Code plugin. Everything the SDLC runs is copied in, so the plugin works without the OMR AI Kit, superpowers, ponytail, plannotator, impeccable or the review toolkits installed.
+Calvin's AI-native software development lifecycle as one Claude Code plugin. It holds `sdlc-run` and every skill, agent and hook the SDLC runs, the UX suite included, and nothing else. It works without the OMR AI Kit installed.
 
-This repo is a Claude Code marketplace with one plugin, `calvin-sdlc`, in `plugins/calvin-sdlc/`.
+This repo is a Claude Code marketplace named `cct` with one plugin, also named `cct`, in `plugins/cct/`. Every skill is called as `/cct:<name>`, for example `/cct:sdlc-run` or `/cct:ux-review`.
 
 ## Install
 
-From GitHub (the repo is private, so `gh auth login` or a git credential for github.com must work first):
-
 ```bash
 claude plugin marketplace add cdudek/calvin-sdlc
-claude plugin install calvin-sdlc@calvin-sdlc
+claude plugin install cct@cct
 ```
 
-From a local checkout:
+Inside a session: `/plugin marketplace add cdudek/calvin-sdlc`, then `/plugin install cct@cct`. Restart Claude Code afterwards so the hooks load.
+
+Update later:
 
 ```bash
-git clone git@github.com:cdudek/calvin-sdlc.git ~/projects/calvin-sdlc
-claude plugin marketplace add ~/projects/calvin-sdlc
-claude plugin install calvin-sdlc@calvin-sdlc
+claude plugin marketplace update cct
+claude plugin update cct@cct
 ```
 
-Inside a session the same works as `/plugin marketplace add cdudek/calvin-sdlc` and `/plugin install calvin-sdlc@calvin-sdlc`. Restart Claude Code afterwards so the hooks load.
+### Turn off what it replaces
 
-Update later with `claude plugin marketplace update calvin-sdlc` and `claude plugin update calvin-sdlc@calvin-sdlc`.
-
-### Turn off the plugins it replaces
-
-This plugin carries copies of omr-dev, omr-ux, superpowers, ponytail, plannotator's skills, impeccable, pr-review-toolkit, code-review, feature-dev, code-simplifier, frontend-design, security-guidance, show-me, ui-ux-pro-max and the designer-skills plugins. If those stay enabled too, every skill shows up twice and hooks run twice (worktree creation, the superpowers session start, the security review). Disable the originals:
+`cct` carries its own copy of the omr-dev and omr-ux skills the SDLC uses. If those plugins stay enabled, the skills appear twice and the worktree hooks run twice:
 
 ```bash
-for p in omr-dev@omr-ai-kit omr-ux@omr-ai-kit superpowers@claude-plugins-official ponytail@ponytail impeccable@impeccable pr-review-toolkit@claude-plugins-official code-review@claude-plugins-official feature-dev@claude-plugins-official code-simplifier@claude-plugins-official frontend-design@claude-plugins-official security-guidance@claude-plugins-official show-me@show-me ui-ux-pro-max@ui-ux-pro-max-skill calvin@calvin-kit; do claude plugin disable "$p"; done
+for p in omr-dev@omr-ai-kit omr-ux@omr-ai-kit calvin@calvin-kit; do claude plugin disable "$p"; done
 ```
 
-The designer-skills plugins (`design-ops`, `design-research`, `ui-design` and the rest under `@designer-skills`) are copied too; disable them the same way if they are installed.
-
-Remove the `WorktreeCreate` and `WorktreeRemove` entries from `~/.claude/settings.json` as well, since the plugin registers the same hooks.
+Also remove the `WorktreeCreate` and `WorktreeRemove` entries from `~/.claude/settings.json`; `cct` registers the same hooks.
 
 ### Tools the skills call
-
-The skills shell out to these. Install them once per machine:
 
 ```bash
 brew install gh jq node python uv
@@ -48,29 +39,24 @@ curl -fsSL https://plannotator.ai/install.sh | bash
 ```
 
 - `gh`: pull requests, merge state, auto-merge, releases.
-- `codex`: second-opinion reviews in pr-review, Codex image generation in designs-explore and ux-design. Log in with `codex login`.
-- `agent-browser`: drives the browser for E2E planning, UX screenshots and responsive checks.
-- `plannotator`: the plan and annotation review UI. Its hooks run on EnterPlanMode and ExitPlanMode; without the CLI those hooks just fail quietly.
-- Playwright MCP comes with the plugin (`.mcp.json`).
+- `codex`: the second reviewer in `pr-review` and the image generation in `designs-explore` and `ux-design`. Log in with `codex login`.
+- `agent-browser`: drives the running app for E2E planning, UX screenshots and responsive checks.
+- `plannotator`: plan and annotation review; `sdlc-run adopt` installs its plugin through the repo's `sdlc:tools` script.
 
 ## What is inside
 
-- **The SDLC:** `sdlc-run` (adopt, status, intent → UX plan → facts → tech plan → one /goal build per milestone → milestone PR), with `builder`, `verifier`, `review-fix-loop`, `pr-review`, `address-feedback`, `pr-create`, `squash`, `release-cut`, E2E skills and agents, `security-review`, `codex-run`.
-- **UX:** the ux suite renamed with a `ux-` prefix (`ux-init`, `ux-audit`, `ux-design`, `ux-validate`, `ux-review`, `ux-conformance`, `ux-guidelines`, `ux-decision`, `ux-sitemap-create`, `ux-run`) plus `ux-laws-apply`, `designs-explore`, `variants-create`, `design-consult`, `design-system-apply`, `microcopy-write`, `accessibility-audit`, `responsive-audit`, impeccable, ui-ux-pro-max, `ux-patterns`, `ux-heuristics` and the designer-skills library.
-- **Engineering habits:** superpowers (brainstorming, writing-plans, TDD, systematic debugging, verification before completion, worktrees) and ponytail (smallest complete change, review, audit).
-- **New projects:** `project-kickoff` writes the context, brand guide and design system before the first line of app code.
-- **Docs:** `docs/stack.md` (the stack), `docs/working-rules.md` (how Calvin works with agents), `docs/skill-map.md` (where every skill came from), `docs/omr-dev-guide.md`.
-- **Blueprint:** `blueprint/` holds the Dockerfile, GitHub Actions, deploy docs and release config from the HeyDiff repos, for Next.js on Cloud Run, Electron, WXT and a HeroUI design-system kit.
-- **Examples:** `examples/heydiff/` holds a real context repo, brand guide exports, UX docs and the brand guide PDF to copy the shape from.
-
-Every skill is called as `calvin-sdlc:<name>`, for example `/calvin-sdlc:sdlc-run` or `/calvin-sdlc:ux-review`.
+- **The SDLC:** `sdlc-run` (adopt, status, intent → UX plan → facts → tech plan → one /goal build per milestone → milestone PR), `review-fix-loop`, `pr-review`, `address-feedback`, `pr-create`, `squash`, `security-review`, `architecture-review`, `c4-diagram-create`, `plan-design-review`, `ai-ready-issues`, `write-ticket`, `linear-manage`, the E2E skills (`e2e-write`, `e2e-test-run`, `e2e-from-ticket-write`, `flaky-test-fix`), `browser-automate` and the `role-*` helpers, with the agents they dispatch (`builder`, `verifier`, `code-reviewer`, `validate-finding`, `ac-auditor`, `review-runner`, the fix-loop and E2E agents).
+- **UX:** `ux-init`, `ux-audit`, `ux-design`, `ux-validate`, `ux-review`, `ux-conformance`, `ux-guidelines`, `ux-decision`, `ux-sitemap-create` and the `ux-reviewer` agent, plus `designs-explore`, `variants-create`, `design-consult`, `design-system-apply`, `microcopy-write`, `accessibility-audit`, `responsive-audit`, `ux-laws-apply`, and the small design skills `ux-design` calls (`ux-writing`, `layout-grid`, `jobs-to-be-done`, `state-machine`, `heuristic-evaluation-ai`, `design-brief`, `frontend-design`).
+- **New projects:** `project-kickoff` writes the context, brand guide, design system and UX rules before the first line of app code.
+- **Hooks:** worktrees always under `<repo>/.worktrees/<name>`, and a lint on every edit.
+- **Docs:** `docs/stack.md`, `docs/working-rules.md`, `docs/skill-map.md` (where each skill came from), `docs/omr-dev-guide.md`.
+- **Blueprint:** `blueprint/` has the Dockerfile, GitHub Actions, deploy docs and release config for Next.js on Cloud Run, Electron, WXT and a HeroUI design-system kit, with notes for running it without GCP.
+- **Examples:** `examples/heydiff/` has a real context repo, brand guide exports, UX docs and the brand guide PDF.
 
 ## Rebuild from the sources
 
-`scripts/build.py` regenerates `plugins/calvin-sdlc/` from the installed plugins, the OMR AI Kit checkout and the HeyDiff repos, then lays `overlay/` (the hand-written files) on top. Edit hand-written files in `overlay/`, never in `plugins/calvin-sdlc/`.
+`scripts/build.py` regenerates `plugins/cct/` from the OMR AI Kit (latest `master`), the installed public plugins and the HeyDiff repos, keeps only what `sdlc-run` and `project-kickoff` reach, and lays `overlay/` (the hand-written files) on top. Edit hand-written files in `overlay/`, never in `plugins/cct/`.
 
 ```bash
 python3 scripts/build.py
 ```
-
-Licences of the copied public plugins are kept in `plugins/calvin-sdlc/licenses/`.

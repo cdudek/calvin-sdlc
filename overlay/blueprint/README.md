@@ -9,7 +9,7 @@ Working CI/CD and project setup copied from the HeyDiff repos on 2026-10-31. Cop
 | `chrome-extension-wxt/` | heydiff-chrome | WXT extension: scripts, config, CI |
 | `design-system-kit-heroui/` | heydiff-kit | npm workspaces publishing tokens, ui (HeroUI v3) and contracts to GitHub Packages |
 
-Every folder also has the repo's `sdlc.json`, which `calvin-sdlc:sdlc-run` reads.
+Every folder also has the repo's `sdlc.json`, which `cct:sdlc-run` reads.
 
 ## The web pipeline
 
