@@ -1,0 +1,883 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>sdlc-run, explained</title>
+<style>
+  :root{
+    --bg:#f5f4f0; --card:#ffffff; --ink:#15171a; --ink2:#5a6068; --ink3:#8a9097; --line:#e3e1db; --line2:#c9c6be;
+    --you:#d9480f; --you-soft:#fff0e8; --agent:#1c7c54; --agent-soft:#e6f4ec;
+    --blue:#2557d6; --blue-soft:#e9effd; --red:#c92a2a; --red-soft:#fdecec; --amber:#b7791f; --amber-soft:#fdf4e3;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{ --bg:#0f1113; --card:#181b1f; --ink:#eef0f3; --ink2:#a6adb5; --ink3:#78808a; --line:#272c32; --line2:#3a4149;
+           --you:#ff8a4c; --you-soft:#33190d; --agent:#4fc58a; --agent-soft:#11281c;
+           --blue:#7aa2ff; --blue-soft:#141f3a; --red:#ff7676; --red-soft:#341414; --amber:#f0b44c; --amber-soft:#30240f; }
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;background:var(--bg);color:var(--ink);
+       font:16.5px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  main{max-width:980px;margin:0 auto;padding:44px 16px 90px}
+  h1{font-size:clamp(32px,6.4vw,54px);line-height:1.02;letter-spacing:-.035em;margin:0 0 14px}
+  h2{font-size:clamp(22px,3.6vw,28px);letter-spacing:-.02em;margin:0 0 6px}
+  h3{font-size:18px;margin:0 0 4px;letter-spacing:-.01em}
+  p{margin:0 0 10px}
+  .kicker{font:600 12px/1 var(--mono);letter-spacing:.14em;text-transform:uppercase;color:var(--ink3);margin-bottom:14px}
+  .lede{font-size:clamp(17px,2.4vw,20px);color:var(--ink2);max-width:46ch;margin:0}
+  section{margin-top:64px}
+  .sub{color:var(--ink2);margin-bottom:22px;max-width:62ch}
+  code{font:13.5px var(--mono);background:var(--line);padding:1px 6px;border-radius:5px;word-break:break-word}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px}
+  .muted{color:var(--ink2)}
+  .small{font-size:14px}
+  svg{display:block;width:100%;height:auto}
+  svg text{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;fill:var(--ink)}
+  svg .t2{fill:var(--ink2)} svg .t3{fill:var(--ink3)} svg .mono{font-family:ui-monospace,Menlo,monospace}
+
+  /* legend */
+  .legend{display:flex;flex-wrap:wrap;gap:8px 18px;margin:26px 0 0;font-size:14px;color:var(--ink2)}
+  .dot{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:7px;vertical-align:-1px}
+
+  /* hero */
+  .hero{margin-top:30px;border-radius:20px;padding:30px 26px 24px;border:1px solid var(--line);
+        background:radial-gradient(120% 140% at 0% 0%,var(--you-soft) 0%,transparent 45%),
+                   radial-gradient(120% 140% at 100% 100%,var(--agent-soft) 0%,transparent 55%),var(--card)}
+  .hero .legend{margin-top:22px}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:22px}
+  .stat{border-top:1px solid var(--line);padding-top:12px}
+  .stat b{display:block;font-size:clamp(26px,4vw,34px);letter-spacing:-.03em;line-height:1}
+  .stat span{font-size:13.5px;color:var(--ink2)}
+
+  /* stage rail */
+  .rail{margin-top:4px;display:grid;grid-template-columns:repeat(7,1fr);gap:0;position:relative}
+  .rail .st{position:relative;text-align:center;padding:0 4px}
+  .rail .st::before{content:"";position:absolute;top:22px;left:-50%;width:100%;height:3px;background:var(--line2);z-index:0}
+  .rail .st:first-child::before{display:none}
+  .rail .st.g::before{background:var(--agent)}
+  .rail .n{position:relative;z-index:1;width:46px;height:46px;margin:0 auto 10px;border-radius:50%;display:flex;
+           align-items:center;justify-content:center;font-weight:800;font-size:18px;background:var(--card);border:3px solid var(--agent);color:var(--agent)}
+  .rail .st.you .n{border-color:var(--you);color:var(--card);background:var(--you)}
+  .rail .lbl{font-weight:700;font-size:14.5px;line-height:1.2}
+  .rail .who{font:600 10.5px/1.3 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink3);margin-top:4px}
+  .rail .st.you .who{color:var(--you)}
+  .goalband{grid-column:5 / 7;grid-row:2;margin-top:12px;text-align:center;font:600 12px/1 var(--mono);letter-spacing:.08em;
+            color:var(--agent);border:2px dashed var(--agent);border-top:none;border-radius:0 0 12px 12px;padding:9px 0 8px}
+  @media (max-width:700px){
+    .rail{grid-template-columns:1fr;gap:0}
+    .rail .st{display:grid;grid-template-columns:46px 1fr;column-gap:14px;text-align:left;padding:0 0 14px;align-items:center}
+    .rail .st::before{top:-14px;left:21px;width:3px;height:14px}
+    .rail .n{margin:0;grid-row:span 2}
+    .rail .who{margin-top:0}
+    .goalband{display:none}
+    .rail .st.inloop .lbl::after{content:"  ·  inside /goal";font:600 11px var(--mono);color:var(--agent)}
+  }
+
+  /* touchpoints */
+  .tps{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}
+  .tp{position:relative;border-top:4px solid var(--you)}
+  .tp .badge{position:absolute;top:16px;right:16px;font:700 11px var(--mono);color:var(--you);background:var(--you-soft);padding:4px 8px;border-radius:999px}
+  .tp .ic{width:38px;height:38px;border-radius:10px;background:var(--you-soft);display:flex;align-items:center;justify-content:center;margin-bottom:12px}
+  .tp .ic{font-size:21px;font-weight:700;color:var(--you)}
+  .tp p{color:var(--ink2);font-size:15px;margin:0}
+
+  /* stage cards */
+  .phase{display:flex;align-items:center;gap:12px;margin:34px 0 14px;font:700 13px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--ink3)}
+  .phase::after{content:"";flex:1;height:1px;background:var(--line)}
+  .stages{display:grid;gap:14px;grid-template-columns:1fr}
+  @media (min-width:600px){.stages{grid-template-columns:1fr 1fr}}
+  @media (min-width:940px){.stages.four{grid-template-columns:repeat(4,1fr)}.stages.three{grid-template-columns:repeat(3,1fr)}}
+  .sc{display:flex;flex-direction:column;gap:8px}
+  .sc .head{display:flex;align-items:center;gap:12px}
+  .sc .num{flex:0 0 34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;
+           border:2.5px solid var(--agent);color:var(--agent);font-size:15px}
+  .sc.you .num{background:var(--you);border-color:var(--you);color:var(--card)}
+  .sc p{color:var(--ink2);font-size:15px;margin:0}
+  .sc ul{margin:0;padding-left:18px;color:var(--ink2);font-size:15px}
+  .sc li{margin:2px 0}
+  .files{display:flex;flex-wrap:wrap;gap:6px;margin-top:auto;padding-top:6px}
+  .file{font:12.5px var(--mono);padding:3px 8px;border-radius:6px;background:var(--blue-soft);color:var(--blue)}
+  .pill{display:inline-block;font:700 11px var(--mono);letter-spacing:.05em;text-transform:uppercase;padding:4px 9px;border-radius:999px;align-self:flex-start}
+  .pill.you{background:var(--you-soft);color:var(--you)}
+  .pill.agent{background:var(--agent-soft);color:var(--agent)}
+
+  /* two-col diagram layouts */
+  .split{display:grid;gap:22px;align-items:center}
+  @media (min-width:820px){.split{grid-template-columns:1fr 1fr}.split.wide-left{grid-template-columns:1.15fr .85fr}}
+  .facts{display:flex;flex-direction:column;gap:12px}
+  .fact{display:grid;grid-template-columns:28px 1fr;gap:10px;align-items:start}
+  .fact .ix{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;background:var(--agent-soft);color:var(--agent)}
+  .fact p{margin:0;font-size:15px;color:var(--ink2)} .fact b{color:var(--ink)}
+
+  /* feature pipeline */
+  .pipe{display:flex;gap:0;align-items:stretch}
+  .ps{flex:1;position:relative;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 14px 14px;margin-right:26px}
+  .ps:last-child{margin-right:0;background:var(--agent-soft);border-color:var(--agent)}
+  .ps:not(:last-child)::after{content:"";position:absolute;right:-20px;top:50%;width:14px;height:14px;margin-top:-7px;
+        border-top:3px solid var(--agent);border-right:3px solid var(--agent);transform:rotate(45deg)}
+  .ps .pn{font:700 12px var(--mono);color:var(--agent);letter-spacing:.06em}
+  .ps b{display:block;font-size:16px;margin:6px 0 4px;line-height:1.25}
+  .ps small{display:block;color:var(--ink2);font-size:13.5px;line-height:1.4}
+  .ps code{font-size:12px}
+  .back{margin-top:14px;display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:12px;border:2px dashed var(--agent);color:var(--agent);font-weight:600;font-size:15px}
+  .back .bi{font-size:22px;line-height:1;flex:0 0 22px}
+  .whys{display:grid;gap:14px 22px;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));margin-top:22px}
+  @media (max-width:760px){
+    .pipe{flex-direction:column}
+    .ps{margin:0 0 26px}
+    .ps:not(:last-child)::after{right:auto;left:50%;top:auto;bottom:-20px;margin:0 0 0 -7px;transform:rotate(135deg)}
+  }
+
+  /* work shapes: CSS branch paths, smallest to largest */
+  .shapes{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:14px}
+  .shape{grid-column:span 2;display:flex;flex-direction:column;min-width:0}
+  .shape:nth-child(n+4){grid-column:span 3}
+  .shape.rec{border:2px solid var(--blue)}
+  .shape .pick{font:700 11px/1.4 var(--mono);color:var(--blue);margin-bottom:8px}
+  .shape .when{font-size:14px;color:var(--ink2);margin:4px 0 14px}
+  .branch-strip{list-style:none;margin:0 0 16px;padding:0;display:grid;gap:16px}
+  .branch-strip li{position:relative;border:1px solid var(--agent);background:var(--agent-soft);
+    color:var(--agent);border-radius:8px;padding:6px 10px;font:600 12px/1.4 var(--mono);overflow-wrap:anywhere}
+  .branch-strip li+li::before{content:"↓";position:absolute;top:-18px;left:13px;color:var(--ink3);font-size:14px}
+  .branch-strip .branch{border-color:var(--blue);background:var(--blue-soft);color:var(--blue)}
+  .branch-strip .default{border-color:var(--line2);background:var(--bg);color:var(--ink)}
+  .branch-strip .tracker{border-style:dashed;border-color:var(--line2);background:var(--bg);color:var(--ink2)}
+  .shape dl{margin:auto 0 0;font-size:14px}
+  .shape dt{font-weight:700;border-top:1px solid var(--line);padding-top:8px}
+  .shape dd{margin:2px 0 8px;color:var(--ink2)}
+  .shape dt.accept{color:var(--you)}
+  .shape-note{border-left:3px solid var(--you);padding:10px 14px;margin-top:16px;font-size:14px;color:var(--ink2)}
+  @media (max-width:760px){
+    .shapes{grid-template-columns:minmax(0,1fr)}
+    .shape,.shape:nth-child(n+4){grid-column:auto}
+  }
+
+  /* git graph: drawn on wide screens, a vertical tree on phones */
+  .graph-sm{display:none;font-size:15px}
+  @media (max-width:600px){.graph-lg{display:none}.graph-sm{display:block}}
+  .gl{display:grid;grid-template-columns:20px 1fr;gap:10px;align-items:start;padding:7px 0}
+  .gl i{width:14px;height:14px;border-radius:50%;margin-top:4px;display:block}
+  .gl b{display:block} .gl span{color:var(--ink2);font-size:14px}
+  .gl.ind{margin-left:22px;border-left:3px solid var(--blue);padding-left:12px}
+
+  /* PR rules */
+  .prs{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));margin-top:22px}
+  .pr .route{font:600 13px var(--mono);margin-bottom:10px;color:var(--ink)}
+  .pr .row{display:flex;justify-content:space-between;gap:10px;font-size:14px;padding:6px 0;border-top:1px solid var(--line)}
+  .pr .row span:first-child{color:var(--ink2)}
+  .yes{color:var(--agent);font-weight:700} .no{color:var(--ink3);font-weight:600}
+  .pr.trunk{border:2px solid var(--blue)}
+
+  /* verify */
+  .verdicts{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}
+  .vd{border-left:5px solid}
+  .vd.pass{border-color:var(--agent)} .vd.fail{border-color:var(--amber)} .vd.block{border-color:var(--red)}
+  .vd .tag{font:700 13px var(--mono);margin-bottom:8px}
+  .vd.pass .tag{color:var(--agent)} .vd.fail .tag{color:var(--amber)} .vd.block .tag{color:var(--red)}
+  .vd p{font-size:15px;color:var(--ink2);margin:0}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+  .chip{font:12px var(--mono);padding:3px 8px;border-radius:6px;background:var(--red-soft);color:var(--red)}
+
+  /* guardrails */
+  .rules{display:grid;gap:18px 22px;grid-template-columns:repeat(auto-fit,minmax(270px,1fr))}
+  .rule{display:grid;grid-template-columns:34px 1fr;gap:12px;align-items:start}
+  .rule .ic{width:34px;height:34px;border-radius:9px;background:var(--red-soft);display:flex;align-items:center;justify-content:center}
+  .rule .ic{font-size:20px;font-weight:700;color:var(--red)}
+  .rule p{margin:0;font-size:15px;color:var(--ink2)} .rule b{color:var(--ink);display:block;margin-bottom:2px}
+
+  /* tracker */
+  .trk{display:grid;gap:12px;grid-template-columns:1fr}
+  @media (min-width:600px){.trk{grid-template-columns:1fr 1fr}}
+  @media (min-width:940px){.trk{grid-template-columns:repeat(4,1fr)}}
+  .tk{display:flex;flex-direction:column;gap:6px;position:relative}
+  .tk.rec{border:2px solid var(--blue)}
+  .tk .rb{position:absolute;top:-11px;left:16px;font:700 10.5px var(--mono);letter-spacing:.06em;text-transform:uppercase;background:var(--blue);color:var(--card);padding:3px 8px;border-radius:999px}
+  .tk h3{display:flex;align-items:center;gap:8px}
+  .tk .lg{width:26px;height:26px;border-radius:7px;display:flex;align-items:center;justify-content:center;font:800 13px var(--mono);color:#fff}
+  .tk p{margin:0;font-size:14.5px;color:var(--ink2)}
+  .tk .setup{margin-top:auto;padding-top:8px;font:12.5px var(--mono);color:var(--ink2)}
+  .tk .setup code{font-size:12px}
+  .ladder{margin-top:22px;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--card)}
+  .lrow{display:grid;grid-template-columns:200px repeat(3,1fr);border-top:1px solid var(--line)}
+  .lrow:first-child{border-top:none}
+  .lrow > div{padding:12px 14px;font-size:14px;color:var(--ink2)}
+  .lrow.h > div{font:700 11.5px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);background:var(--bg)}
+  .lrow .lv b{display:block;color:var(--ink);font-size:15px}
+  .lrow .lv span{font-size:13px}
+  .lrow .lv{border-left:4px solid var(--line2)}
+  .lrow.m .lv{border-left-color:var(--blue)}
+  .lrow .k{display:none}
+  @media (max-width:760px){
+    .lrow{grid-template-columns:1fr}
+    .lrow.h{display:none}
+    .lrow > div{padding:6px 14px}
+    .lrow .lv{padding-top:12px}
+    .lrow > div:last-child{padding-bottom:12px}
+    .lrow .k{display:inline-block;width:62px;font:700 11px var(--mono);color:var(--ink3);text-transform:uppercase}
+  }
+  .flow{display:grid;gap:12px;grid-template-columns:1fr;margin-top:22px}
+  @media (min-width:820px){.flow{grid-template-columns:1fr 1fr}}
+  .lane h3{font-size:16px;margin-bottom:10px}
+  .steps2{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+  .s2{font:600 12.5px var(--mono);padding:5px 10px;border-radius:8px;background:var(--bg);border:1px solid var(--line)}
+  .s2.done{background:var(--agent-soft);color:var(--agent);border-color:var(--agent)}
+  .ar{color:var(--ink3);font-weight:700}
+  .lane p{margin:10px 0 0;font-size:14px;color:var(--ink2)}
+
+
+  /* no waiting on CI */
+  .nw{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr))}
+  .nw .id{font:700 12px var(--mono);letter-spacing:.06em;color:var(--agent);background:var(--agent-soft);display:inline-block;padding:3px 9px;border-radius:999px;margin-bottom:8px}
+  .nw p{margin:0;font-size:15px;color:var(--ink2)}
+  .nw h3{font-size:17px}
+  .nums{border-left:3px solid var(--you);padding:10px 14px;margin:0 0 22px;font-size:15px;color:var(--ink2)}
+  .nums b{color:var(--ink)}
+  .pth .row{flex-wrap:wrap}
+  .pth .row span:last-child{text-align:right;margin-left:auto}
+  .afacts{display:grid;gap:12px 22px;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));margin-top:6px}
+  .stk{margin-top:18px;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--card)}
+  .srow{display:grid;grid-template-columns:120px repeat(4,minmax(0,1fr));border-top:1px solid var(--line)}
+  .srow:first-child{border-top:none}
+  .srow > div{padding:10px 12px;font-size:13.5px;color:var(--ink2);min-width:0;overflow-wrap:anywhere}
+  .srow code{font-size:12px}
+  .srow.h > div{font:700 11.5px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--ink3);background:var(--bg)}
+  .srow .sn{font-weight:700;color:var(--ink);border-left:4px solid var(--agent)}
+  .srow .k{display:none}
+  @media (max-width:860px){
+    .srow{grid-template-columns:1fr}
+    .srow.h{display:none}
+    .srow > div{padding:5px 14px}
+    .srow .sn{padding-top:12px;font-size:15px}
+    .srow > div:last-child{padding-bottom:12px}
+    .srow .k{display:block;font:700 10.5px var(--mono);letter-spacing:.06em;color:var(--ink3);text-transform:uppercase}
+  }
+
+  /* ciPaths diagram, commit/PR split, code sample */
+  .ci-sm{display:none}
+  @media (max-width:600px){.ci-lg{display:none}.ci-sm{display:block}}
+  svg .tg{fill:var(--agent)} svg .tb{fill:var(--blue)} svg .ty{fill:var(--you)}
+  svg .f-on{fill:var(--agent-soft);stroke:var(--agent);stroke-width:2}
+  svg .f-off{fill:var(--bg);stroke:var(--line2);stroke-width:2;stroke-dasharray:5 4}
+  svg .bx{fill:var(--card);stroke:var(--line2);stroke-width:2}
+  svg .bxb{fill:var(--blue-soft);stroke:var(--blue);stroke-width:2}
+  svg .ln{stroke:var(--ink3);stroke-width:2;fill:none}
+  svg .ln.on{stroke:var(--agent)}
+  svg .m{font-family:ui-monospace,Menlo,monospace}
+  .split2{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));margin-top:22px}
+  .split2 h3{font-size:16px;margin-bottom:8px}
+  .split2 ul{margin:0;padding-left:18px;color:var(--ink2);font-size:15px}
+  .split2 li{margin:3px 0}
+  .split2 .c{border-top:4px solid var(--agent)}
+  .split2 .p{border-top:4px solid var(--blue)}
+  pre.code{margin:12px 0 0;padding:12px 14px;border-radius:10px;background:var(--bg);border:1px solid var(--line);
+           font:12.5px/1.5 var(--mono);color:var(--ink);overflow-x:auto;white-space:pre}
+  .new{border-left:3px solid var(--agent);padding:10px 14px;margin-top:18px;font-size:14.5px;color:var(--ink2)}
+  .new b{color:var(--ink)}
+
+  /* commands */
+  .cmds{display:grid;gap:12px;grid-template-columns:1fr}
+  @media (min-width:700px){.cmds{grid-template-columns:1fr 1fr}}
+  .cmd code{display:block;background:none;padding:0;font-size:14px;color:var(--ink);margin-bottom:6px}
+  .cmd p{margin:0;font-size:14.5px;color:var(--ink2)}
+  footer{margin-top:60px;color:var(--ink3);font-size:13px}
+</style>
+</head>
+<body>
+<main>
+
+<div class="kicker">cct · sdlc-run v3.2.0</div>
+<h1>sdlc-run, explained</h1>
+<p class="lede">You confirm intent and plan. The agent builds and checks inside /goal. Acceptance follows the shape of the work.</p>
+
+<div class="hero">
+<!-- stage rail -->
+<div class="rail" role="img" aria-label="Seven stages. Confirm intent and plan. Shipping depends on the work shape: accept each milestone and, when present, the project. Hotfix PRs follow the default-branch tier. Build, milestone checks and project checks run inside /goal.">
+  <div class="st you"><div class="n">1</div><div class="lbl">Intent</div><div class="who">you confirm</div></div>
+  <div class="st g"><div class="n">2</div><div class="lbl">UX plan</div><div class="who">agent</div></div>
+  <div class="st g"><div class="n">3</div><div class="lbl">Facts</div><div class="who">agent</div></div>
+  <div class="st you g"><div class="n">4</div><div class="lbl">Tech plan</div><div class="who">you approve</div></div>
+  <div class="st g inloop"><div class="n">5</div><div class="lbl">Build</div><div class="who">agent</div></div>
+  <div class="st you g inloop"><div class="n">6</div><div class="lbl">Ship</div><div class="who">accept by shape</div></div>
+  <div class="st g"><div class="n">7</div><div class="lbl">Outcome</div><div class="who">agent</div></div>
+  <div class="goalband">inside /goal</div>
+</div>
+<div class="legend">
+  <span><i class="dot" style="background:var(--you)"></i>You decide</span>
+  <span><i class="dot" style="background:var(--agent)"></i>The agent does it</span>
+  <span><i class="dot" style="background:var(--blue)"></i>A file in the change folder</span>
+</div>
+<p class="small muted" style="margin:16px 0 0">Ship: Stage 6 for each milestone, plus 6p for a project. Hotfixes ship from Stage 5.</p>
+<div class="stats">
+  <div class="stat"><b>2</b><span>confirmations before the build</span></div>
+  <div class="stat"><b>1</b><span>PR to default per project or standalone milestone</span></div>
+  <div class="stat"><b>0</b><span>code written outside /goal</span></div>
+</div>
+<p class="new"><b>New in 3.2.0.</b> Milestone work is commits, not PRs: fixes, test repairs and records ride in the milestone PR. Each repo lists, in <code>sdlc.json</code> <code>ciPaths</code>, which changed paths switch which CI step on; <code>adopt</code> writes the defaults.</p>
+</div>
+
+<!-- touchpoints -->
+<section>
+  <h2>Your three moments</h2>
+  <p class="sub">Three kinds of touchpoint, not three clicks. Acceptance repeats for each milestone and project. Blockers also come back to you.</p>
+  <div class="tps">
+    <div class="card tp">
+      <span class="badge">stage 1</span>
+      <div class="ic">✓</div>
+      <h3>Confirm the intent</h3>
+      <p>Is this the right problem? Are the asks, the users and the success measure correct?</p>
+    </div>
+    <div class="card tp">
+      <span class="badge">stage 4</span>
+      <div class="ic">⊞</div>
+      <h3>Approve the plan</h3>
+      <p>UX plan, facts and tech plan in one review. Approval locks facts, done criteria and checks. Then /goal runs the build.</p>
+    </div>
+    <div class="card tp">
+      <span class="badge">shipping</span>
+      <div class="ic">⤓</div>
+      <h3>Accept completed work</h3>
+      <p>Accept each milestone at Stage 6, plus the project at 6p when present. In one go the milestone ask comes only when a Critical or High finding would be deferred. Hotfix PR approval follows the tier.</p>
+    </div>
+  </div>
+</section>
+
+<!-- stages -->
+<section>
+  <h2>What happens at each stage</h2>
+  <p class="sub">One change folder, <code>changes/&lt;date&gt;-&lt;slug&gt;/</code>, holds everything. Nothing lives only in a chat.</p>
+
+  <div class="phase">Plan · before any code</div>
+  <div class="stages four">
+    <div class="card sc you">
+      <div class="head"><div class="num">1</div><h3>Intent</h3></div>
+      <p>Choose ticket, design, size, kind and milestone; add a project if needed. The agent drafts the intent.</p>
+      <ul><li>Your asks, word for word</li><li>Job stories: who needs what, and why</li><li>How we will measure success</li></ul>
+      <span class="pill you">you confirm</span>
+      <div class="files"><span class="file">intent.md</span></div>
+    </div>
+    <div class="card sc">
+      <div class="head"><div class="num">2</div><h3>UX plan</h3></div>
+      <p>How the screens work, planned against the design rules. No designer gate.</p>
+      <ul><li>Pages and routes that change</li><li>States per screen, and the words</li><li>Components: exists, adapt or new</li><li>Skipped for size none or ux: off</li></ul>
+      <span class="pill agent">agent</span>
+      <div class="files"><span class="file">spec/</span></div>
+    </div>
+    <div class="card sc">
+      <div class="head"><div class="num">3</div><h3>Facts</h3></div>
+      <p>Short, testable sentences that must be true when it ships.</p>
+      <ul><li>Each fact points to an ask</li><li>Each names its screen or state</li><li>Each names the E2E test that proves it</li></ul>
+      <span class="pill agent">agent</span>
+      <div class="files"><span class="file">facts.md</span></div>
+    </div>
+    <div class="card sc you">
+      <div class="head"><div class="num">4</div><h3>Tech plan</h3></div>
+      <p>Where the code goes, and how the work splits into features.</p>
+      <ul><li>The list of features</li><li>"Done" as data, not prose</li><li>You approve 2, 3 and 4 in one review</li></ul>
+      <span class="pill you">you approve</span>
+      <div class="files"><span class="file">plan.md</span><span class="file">done.json</span><span class="file">lock.json</span></div>
+    </div>
+  </div>
+
+  <div class="phase">Build inside /goal · then ship</div>
+  <div class="stages three">
+    <div class="card sc">
+      <div class="head"><div class="num">5</div><h3>Build, feature by feature</h3></div>
+      <p>One go is the default: each feature is a commit on the milestone branch, and the next starts at once. Fixes, test repairs and records are commits on that branch too, never PRs of their own. With <code>feature-prs</code>, each feature is a PR that auto-merges into the milestone when green. Hotfixes go straight to the default branch.</p>
+      <ul><li>Write E2E tests, then build</li><li>Bugs: a failing test first, then the fix</li><li>Only the tests you touched run; no full checks between features</li><li>Open questions go to questions.md and never block</li></ul>
+      <span class="pill agent">agent</span>
+      <div class="files"><span class="file">milestone.md</span></div>
+    </div>
+    <div class="card sc you">
+      <div class="head"><div class="num">6</div><h3>Milestone</h3></div>
+      <p>The heavy checks run once, on everything the milestone changed.</p>
+      <ul><li>Code review, UX audit, accessibility</li><li>Configured width matrix; full E2E once, three times for changed and flaky specs</li><li>Every fact and ask exercised in the built app</li><li>Security review when auth, money or consent is touched</li></ul>
+      <p>You accept each milestone. In one go you are asked only when a Critical or High would be deferred.</p>
+      <p><b>6p · Project:</b> rebase, then run milestone checks on the whole project diff. One PR to default; you accept the project.</p>
+      <span class="pill you">6 + 6p inside /goal</span>
+      <div class="files"><span class="file">verify/report.md</span><span class="file">validation.md</span></div>
+    </div>
+    <div class="card sc">
+      <div class="head"><div class="num">7</div><h3>Outcome</h3></div>
+      <p>The archive move is the last commit of the PR into the default branch, so no PR of its own. After release, the agent reads the success measure from PostHog.</p>
+      <ul><li>Hit: done</li><li>Missed: that starts the next change</li></ul>
+      <span class="pill agent">agent · you read it</span>
+    </div>
+  </div>
+</section>
+
+<!-- feature loop -->
+<section>
+  <h2>Stage 5: one feature, one loop</h2>
+  <p class="sub">The agent repeats this for every feature in a milestone. One go commits each feature; feature PRs add a verify and a PR. The hotfix lane uses the default branch instead.</p>
+  <div class="pipe">
+    <div class="ps"><div class="pn">STEP 1</div><b>Write E2E tests</b><small>For this feature's facts, before any code.</small></div>
+    <div class="ps"><div class="pn">STEP 2</div><b>Build to green</b><small>Bugs get a failing test first. Run only the tests you touched.</small></div>
+    <div class="ps"><div class="pn">STEP 3</div><b>Commit or verify</b><small>One go: commit. Feature PRs: <code>verify_gate feature</code> once.</small></div>
+    <div class="ps"><div class="pn">STEP 4</div><b>PR into milestone</b><small>Feature PRs only. UX review of its screens; Critical and High fixed.</small></div>
+    <div class="ps"><div class="pn">STEP 5</div><b>Arm, then move on</b><small>Auto-merge on green. Watch in the background; never wait.</small></div>
+  </div>
+  <div class="back"><span class="bi">↻</span>Next feature starts at once. Independent features run in parallel, at most 4 builders, each in its own worktree and test slot.</div>
+</section>
+
+<!-- work shapes -->
+<section>
+  <h2>It scales with the work</h2>
+  <p class="sub">Pick the milestone mode at setup. A normal ticket uses one milestone, with no project branch. Solid boxes show branches; dashed boxes show tracker levels.</p>
+  <div class="shapes">
+    <article class="card shape">
+      <div class="pick">01 · Issue · hotfix</div>
+      <h3>One feature / hotfix</h3>
+      <p class="when">Pick the hotfix lane for one change that needs only feature checks.</p>
+      <ol class="branch-strip" aria-label="Hotfix branch path">
+        <li>feature branch</li><li class="default">default branch</li>
+      </ol>
+      <dl><dt>PRs to default</dt><dd>1 feature PR. No milestone branch.</dd>
+        <dt>Checks</dt><dd>Feature checks only.</dd>
+        <dt class="accept">Where you accept</dt><dd>At the default-branch PR if the tier requires approval. No separate milestone acceptance is specified.</dd></dl>
+    </article>
+    <article class="card shape">
+      <div class="pick">02 · Milestone · single</div>
+      <h3>A milestone of one</h3>
+      <p class="when">Pick <code>single</code> for one change with both check scopes.</p>
+      <ol class="branch-strip" aria-label="Single milestone branch path">
+        <li>one feature branch</li><li class="branch">milestone/&lt;slug&gt;</li><li class="default">default branch</li>
+      </ol>
+      <dl><dt>PRs to default</dt><dd>1 milestone PR.</dd>
+        <dt>Checks</dt><dd>Feature + milestone checks on one change.</dd>
+        <dt class="accept">Where you accept</dt><dd>The milestone at Stage 6. Its PR goes to default.</dd></dl>
+    </article>
+    <article class="card shape rec">
+      <div class="pick">03 · Milestone · new / existing<br>Recommended for a normal ticket</div>
+      <h3>One milestone, several features</h3>
+      <p class="when">Pick <code>new</code> to open a milestone, or <code>existing</code> to add features to one.</p>
+      <ol class="branch-strip" aria-label="Multi-feature milestone branch path">
+        <li>feature A · B · C</li><li class="branch">milestone/&lt;slug&gt;</li><li class="default">default branch</li>
+      </ol>
+      <dl><dt>PRs to default</dt><dd>1 milestone PR. Features are commits on the milestone branch; only <code>feature-prs</code> makes each one a PR that auto-merges.</dd>
+        <dt>Checks</dt><dd>Feature checks per PR; heavy checks on the milestone diff.</dd>
+        <dt class="accept">Where you accept</dt><dd>The milestone at Stage 6. Choose no project for this shape.</dd></dl>
+    </article>
+    <article class="card shape">
+      <div class="pick">04 · Project · new / existing</div>
+      <h3>Several milestones, one project</h3>
+      <p class="when">When opening a new milestone, add a project if the work will span several milestones.</p>
+      <ol class="branch-strip" aria-label="Project branch path">
+        <li>feature branches</li><li class="branch">milestone/&lt;slug&gt; × several</li><li class="branch">project/&lt;slug&gt;</li><li class="default">default branch</li>
+      </ol>
+      <dl><dt>PRs to default</dt><dd>1 project PR. Milestone PRs auto-merge into the project on green.</dd>
+        <dt>Checks</dt><dd>Per milestone, then milestone checks again on the whole project diff.</dd>
+        <dt class="accept">Where you accept</dt><dd>Each milestone at Stage 6, then the project at 6p. Only the project PR gets CI review and a tier.</dd></dl>
+    </article>
+    <article class="card shape">
+      <div class="pick">05 · Initiative · tracker only</div>
+      <h3>Several projects, one initiative</h3>
+      <p class="when">Group projects toward a shared outcome over a quarter or so.</p>
+      <ol class="branch-strip" aria-label="Initiative tracking and project branch paths">
+        <li class="tracker">Initiative · no branch</li><li class="tracker">contains several projects</li><li class="branch">each: features → milestone/&lt;slug&gt; → project/&lt;slug&gt;</li><li class="default">default branch · per project</li>
+      </ol>
+      <dl><dt>PRs to default</dt><dd>1 per project. No initiative PR.</dd>
+        <dt>Tracker</dt><dd>Linear initiative, GitHub initiative issue, or Beads epic labeled initiative.</dd>
+        <dt class="accept">Where you accept</dt><dd>Each milestone and each project. There is no separate initiative acceptance stage.</dd></dl>
+    </article>
+  </div>
+  <p class="shape-note"><b>Acceptance is separate from PR approval.</b> Stage 6 is where you accept each milestone, even inside a project. Interior PRs auto-merge on checks alone. Only PRs into the default branch get CI review and a Ship/Show/Ask tier.</p>
+</section>
+
+<!-- branches -->
+<section>
+  <h2>Branches and PRs</h2>
+  <p class="sub">Example: one milestone without a project. Here, main represents the repo’s default branch. With a project, its PR reaches default instead. In one go, features are commits on the milestone branch, and the next milestone is cut from it.</p>
+  <div class="card graph-sm">
+    <div class="gl"><i style="background:var(--ink3)"></i><div><b>main</b><span>In this example, one milestone PR lands here. CI reviews and tiers it; you accept the milestone.</span></div></div>
+    <div class="gl ind"><i style="background:var(--blue)"></i><div><b style="color:var(--blue)">milestone</b><span>Cut from main. Every feature merges into it.</span></div></div>
+    <div class="gl ind" style="margin-left:44px;border-color:var(--agent)"><i style="background:var(--agent)"></i><div><b style="color:var(--agent)">feature A, B, C</b><span>One commit each, or one small PR with feature PRs. Independent features build in parallel.</span></div></div>
+  </div>
+  <div class="card graph-lg">
+    <svg viewBox="0 0 900 310" role="img" aria-label="Git graph. Main at the top. A milestone branch is cut from main. Three feature branches each merge into the milestone. At the end, the milestone merges into main through one reviewed PR.">
+      <defs>
+        <marker id="ab" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 10 5 0 10z" fill="var(--blue)"/></marker>
+        <marker id="ag2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 10 5 0 10z" fill="var(--agent)"/></marker>
+      </defs>
+      <!-- main -->
+      <text x="12" y="56" font-size="15" font-weight="800">main</text>
+      <line x1="80" y1="52" x2="880" y2="52" stroke="var(--ink3)" stroke-width="4" stroke-linecap="round"/>
+      <circle cx="120" cy="52" r="9" fill="var(--card)" stroke="var(--ink3)" stroke-width="3"/>
+      <!-- milestone -->
+      <text x="12" y="152" font-size="15" font-weight="800" fill="var(--blue)">milestone</text>
+      <path d="M120 52 C120 110, 160 148, 200 148" fill="none" stroke="var(--blue)" stroke-width="4"/>
+      <line x1="200" y1="148" x2="740" y2="148" stroke="var(--blue)" stroke-width="4"/>
+      <path d="M740 148 C790 148, 800 100, 800 64" fill="none" stroke="var(--blue)" stroke-width="4"/>
+      <circle cx="800" cy="52" r="11" fill="var(--blue)"/>
+      <!-- features: C starts first on the lower lane, A and B on the upper lane, so nothing crosses -->
+      <g stroke="var(--agent)" stroke-width="3" fill="none">
+        <path d="M215 148 C215 240, 240 270, 280 270 L640 270 C680 270, 690 220, 690 160" marker-end="url(#ag2)"/>
+        <path d="M265 148 C265 190, 280 210, 305 210 L335 210 C365 210, 380 190, 380 160" marker-end="url(#ag2)"/>
+        <path d="M435 148 C435 190, 450 210, 475 210 L505 210 C535 210, 550 190, 550 160" marker-end="url(#ag2)"/>
+      </g>
+      <g fill="var(--agent)">
+        <circle cx="380" cy="148" r="7"/><circle cx="550" cy="148" r="7"/><circle cx="690" cy="148" r="7"/>
+      </g>
+      <text x="322" y="234" text-anchor="middle" font-size="13" font-weight="700" fill="var(--agent)">feature A</text>
+      <text x="492" y="234" text-anchor="middle" font-size="13" font-weight="700" fill="var(--agent)">feature B</text>
+      <text x="460" y="292" text-anchor="middle" font-size="13" font-weight="700" fill="var(--agent)">independent feature C, built in parallel</text>
+      <text x="465" y="128" text-anchor="middle" font-size="12.5" class="t2">each feature: a commit (a PR only with feature-prs)</text>
+      <rect x="610" y="78" width="172" height="40" rx="10" fill="var(--blue-soft)"/>
+      <text x="696" y="96" text-anchor="middle" font-size="13" font-weight="800" fill="var(--blue)">milestone PR</text>
+      <text x="696" y="111" text-anchor="middle" font-size="11.5" fill="var(--blue)">full review + you accept</text>
+    </svg>
+  </div>
+  <div class="prs">
+    <div class="card pr">
+      <div class="route">feature → milestone · feature-prs only</div>
+      <div class="row"><span>Checks</span><span>fast, on what it touched</span></div>
+      <div class="row"><span>Claude review</span><span class="no">no</span></div>
+      <div class="row"><span>Who approves</span><span class="yes">auto-merge on green</span></div>
+    </div>
+    <div class="card pr trunk">
+      <div class="route">milestone / project → default</div>
+      <div class="row"><span>Checks</span><span>milestone checks on the diff</span></div>
+      <div class="row"><span>Claude review</span><span class="yes">yes</span></div>
+      <div class="row"><span>Who approves</span><span>Ship / Show / Ask tier</span></div>
+    </div>
+    <div class="card pr">
+      <div class="route">big work: + project branch</div>
+      <p class="small muted" style="margin:0">Work over several milestones adds <code>project/&lt;slug&gt;</code> between main and the milestones. Milestones auto-merge into it. Only the project PR into default gets CI review and a tier. You still accept each milestone, then the project.</p>
+    </div>
+  </div>
+
+  <h3 style="margin-top:34px">Commits, not PRs</h3>
+  <p class="sub" style="margin-bottom:0">While a milestone is open, everything that belongs to it is a commit on <code>milestone/&lt;slug&gt;</code>. In the measured repo 13 of 22 PRs were docs-only records; this removes them.</p>
+  <div class="split2">
+    <div class="card c">
+      <h3>A commit on the milestone branch</h3>
+      <ul>
+        <li>Features (the default, <code>one-go</code>)</li>
+        <li>Fixes found during the build</li>
+        <li>Test and flaky-spec repairs, CI timeout tweaks its tests need</li>
+        <li>Records: plans, handovers, gate lines, <code>findings.md</code>, <code>validation.md</code>, <code>questions.md</code></li>
+      </ul>
+    </div>
+    <div class="card p">
+      <h3>A PR, and only these</h3>
+      <ul>
+        <li>The milestone PR, into <code>project/&lt;slug&gt;</code> or the default branch</li>
+        <li>The project PR, into the default branch</li>
+        <li>Feature PRs, only with <code>delivery: "feature-prs"</code></li>
+        <li>Other repositories, and a change you send to the default branch first</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- no waiting on CI -->
+<section>
+  <h2>No waiting on CI</h2>
+  <p class="sub">Four rules keep the agent building while CI runs, and six CI rules keep CI fast. They hold for every stack; only the commands differ.</p>
+  <p class="nums"><b>One real repo, one day:</b> 39 CI runs, 22 failed, about 25 minutes each. 13 of 22 PRs were docs-only, yet ran the full pipeline.</p>
+  <div class="nw">
+    <div class="card"><span class="id">B1</span><h3>Records and fixes ride along</h3><p>Plans, handovers, gate lines, findings, fixes and test repairs are commits on the milestone branch and ship in its one PR. No PR holds only a record or a fix. The archive move is the last commit of the PR into default.</p></div>
+    <div class="card"><span class="id">C1</span><h3>Gate only on real code</h3><p>Wait for another PR only if this row's code needs something that exists only there. Then merge that branch locally and build on top. Otherwise build on.</p></div>
+    <div class="card"><span class="id">C2</span><h3>Never idle</h3><p>After a push: arm auto-merge, watch in the background, start the next independent row. At most 4 builders. A red check interrupts; otherwise keep going.</p></div>
+    <div class="card"><span class="id">C3</span><h3>Touched tests only</h3><p>A builder runs the tests its change touched. The full suite runs once per milestone, and in CI only where A5 says.</p></div>
+  </div>
+
+  <h3 style="margin-top:34px">The CI blueprint, A1 to A6</h3>
+  <div class="card">
+    <div class="afacts">
+      <div class="fact"><div class="ix">A1</div><p><b>Per-step gating.</b> Each step runs only when its paths changed, read from <code>sdlc.json</code> <code>ciPaths</code>; docs run nothing. One required <code>check</code> status still reports success.</p></div>
+      <div class="fact"><div class="ix">A2</div><p><b>Production target.</b> E2E runs against the built artifact, never a dev server.</p></div>
+      <div class="fact"><div class="ix">A3</div><p><b>Shard.</b> The slow suite splits over N jobs, each with its own database service.</p></div>
+      <div class="fact"><div class="ix">A4</div><p><b>One retry.</b> A pass on retry is reported. It fails only a full run.</p></div>
+      <div class="fact"><div class="ix">A5</div><p><b>Full E2E where it counts.</b> Inside the e2e step: the full suite only on PRs into default or <code>project/*</code>, and on milestone heads; other PRs run touched specs.</p></div>
+      <div class="fact"><div class="ix">A6</div><p><b>Interior branches.</b> <code>project/*</code> needs the same <code>check</code>, so auto-merge waits for green; <code>milestone/*</code> too with <code>feature-prs</code>. One go pushes straight to the milestone branch, so nothing merges into it.</p></div>
+    </div>
+  </div>
+
+  <h3 style="margin-top:34px">Which paths run which step: <code>ciPaths</code></h3>
+  <p class="sub" style="margin-bottom:12px">Each repo lists its own paths in <code>sdlc.json</code> <code>ciPaths</code>, one list for the CI and for the agents that pick touched tests. One <code>changes</code> job reads them and sets a flag for lint, unit, build, e2e and deploy. A job runs only on its flag, and one required <code>check</code> always reports.</p>
+
+  <div class="card">
+    <div class="ci-lg">
+    <svg viewBox="0 0 900 340" role="img" aria-label="A PR that changes only src/cart.test.ts. The changes job reads sdlc.json ciPaths and sets one flag per step: lint and unit true, build, e2e and deploy false. Lint and unit run, the other three skip. The one required check reports success.">
+      <defs>
+        <marker id="cg" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 10 5 0 10z" fill="var(--agent)"/></marker>
+        <marker id="cx" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 10 5 0 10z" fill="var(--ink3)"/></marker>
+      </defs>
+      <g font-size="11" font-weight="700" class="m t3" text-anchor="middle" letter-spacing="1">
+        <text x="78" y="22">1 CHANGED FILES</text><text x="276" y="22">2 CIPATHS</text><text x="462" y="22">3 FLAGS</text><text x="608" y="22">4 JOBS</text><text x="806" y="22">5 GATE</text>
+      </g>
+      <rect class="bx" x="8" y="130" width="140" height="80" rx="12"/>
+      <text x="78" y="162" text-anchor="middle" font-size="12.5" class="t2">PR changes only</text>
+      <text x="78" y="187" text-anchor="middle" font-size="12.5" class="m tb" font-weight="700">src/cart.test.ts</text>
+      <path class="ln" d="M150 170 H176" marker-end="url(#cx)"/>
+      <rect class="bxb" x="178" y="50" width="196" height="240" rx="12"/>
+      <text x="276" y="78" text-anchor="middle" font-size="15" font-weight="800" class="tb">changes job</text>
+      <text x="276" y="98" text-anchor="middle" font-size="12.5" class="tb m">reads sdlc.json ciPaths</text>
+      <g font-size="12.5" class="t2">
+        <text x="194" y="136">docs list      → nothing</text>
+        <text x="194" y="164">all list       → everything</text>
+        <text x="194" y="192">include and not</text>
+        <text x="194" y="209">exclude        → that step</text>
+        <text x="194" y="237">no list knows it</text>
+        <text x="194" y="254">               → everything</text>
+      </g>
+      <g>
+        <path class="ln on" d="M376 170 H393 M393 65 V265"/>
+        <path class="ln on" d="M393 65 H408" marker-end="url(#cg)"/><path class="ln on" d="M393 115 H408" marker-end="url(#cg)"/><path class="ln on" d="M393 165 H408" marker-end="url(#cg)"/><path class="ln on" d="M393 215 H408" marker-end="url(#cg)"/><path class="ln on" d="M393 265 H408" marker-end="url(#cg)"/>
+        <rect class="f-on" x="410" y="46" width="104" height="38" rx="9"/><text x="462" y="70" text-anchor="middle" font-size="13" class="m tg" font-weight="700">lint · true</text>
+        <rect class="f-on" x="410" y="96" width="104" height="38" rx="9"/><text x="462" y="120" text-anchor="middle" font-size="13" class="m tg" font-weight="700">unit · true</text>
+        <rect class="f-off" x="410" y="146" width="104" height="38" rx="9"/><text x="462" y="170" text-anchor="middle" font-size="13" class="m t3" font-weight="700">build · false</text>
+        <rect class="f-off" x="410" y="196" width="104" height="38" rx="9"/><text x="462" y="220" text-anchor="middle" font-size="13" class="m t3" font-weight="700">e2e · false</text>
+        <rect class="f-off" x="410" y="246" width="104" height="38" rx="9"/><text x="462" y="270" text-anchor="middle" font-size="13" class="m t3" font-weight="700">deploy · false</text>
+      </g>
+      <g>
+        <path class="ln on" d="M516 65 H550" marker-end="url(#cg)"/><path class="ln on" d="M516 115 H550" marker-end="url(#cg)"/>
+        <path class="ln" d="M516 165 H550" marker-end="url(#cx)"/><path class="ln" d="M516 215 H550" marker-end="url(#cx)"/><path class="ln" d="M516 265 H550" marker-end="url(#cx)"/>
+        <rect class="f-on" x="552" y="46" width="112" height="38" rx="9"/><text x="608" y="70" text-anchor="middle" font-size="13" class="m tg" font-weight="700">lint runs</text>
+        <rect class="f-on" x="552" y="96" width="112" height="38" rx="9"/><text x="608" y="120" text-anchor="middle" font-size="13" class="m tg" font-weight="700">unit runs</text>
+        <rect class="f-off" x="552" y="146" width="112" height="38" rx="9"/><text x="608" y="170" text-anchor="middle" font-size="13" class="m t3" font-weight="700">build skips</text>
+        <rect class="f-off" x="552" y="196" width="112" height="38" rx="9"/><text x="608" y="220" text-anchor="middle" font-size="13" class="m t3" font-weight="700">e2e skips</text>
+        <rect class="f-off" x="552" y="246" width="112" height="38" rx="9"/><text x="608" y="270" text-anchor="middle" font-size="13" class="m t3" font-weight="700">deploy skips</text>
+      </g>
+      <g class="ln">
+        <path d="M666 65 C700 65 700 150 730 160" class="ln on"/><path d="M666 115 C700 115 700 160 730 166" class="ln on"/>
+        <path d="M666 165 C700 165 710 172 730 172"/><path d="M666 215 C700 215 700 184 730 178"/><path d="M666 265 C700 265 700 190 730 184" />
+      </g>
+      <rect x="732" y="120" width="160" height="104" rx="12" fill="var(--agent-soft)" stroke="var(--agent)" stroke-width="2.5"/>
+      <text x="812" y="150" text-anchor="middle" font-size="17" font-weight="800" class="m tg">check</text>
+      <text x="812" y="172" text-anchor="middle" font-size="12.5" class="t2">the one required status</text>
+      <text x="812" y="191" text-anchor="middle" font-size="12.5" class="t2">skipped is fine</text>
+      <text x="812" y="210" text-anchor="middle" font-size="12.5" class="t2">failure or cancelled fails</text>
+      <text x="450" y="322" text-anchor="middle" font-size="12.5" class="t3">A docs-only PR: every flag false, every job skips, <tspan class="m">check</tspan> still reports success.</text>
+    </svg>
+    </div>
+    <div class="ci-sm">
+    <svg viewBox="0 0 340 500" role="img" aria-label="A PR that changes only src/cart.test.ts. The changes job reads sdlc.json ciPaths and sets one flag per step: lint and unit true, build, e2e and deploy false. Lint and unit run, the other three skip. The one required check reports success.">
+      <defs>
+        <marker id="cg2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 10 5 0 10z" fill="var(--agent)"/></marker>
+        <marker id="cx2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 10 5 0 10z" fill="var(--ink3)"/></marker>
+      </defs>
+      <rect class="bx" x="60" y="4" width="220" height="40" rx="10"/>
+      <text x="170" y="29" text-anchor="middle" font-size="13" class="m tb" font-weight="700">src/cart.test.ts</text>
+      <path class="ln" d="M170 46 V62" marker-end="url(#cx2)"/>
+      <rect class="bxb" x="6" y="64" width="328" height="128" rx="12"/>
+      <text x="20" y="88" font-size="15" font-weight="800" class="tb">changes job</text>
+      <text x="326" y="88" text-anchor="end" font-size="12" class="tb m">reads ciPaths</text>
+      <g font-size="12.5" class="t2">
+        <text x="20" y="112">docs list → nothing</text>
+        <text x="20" y="132">all list → everything</text>
+        <text x="20" y="152">include, not exclude → that step</text>
+        <text x="20" y="172">no list knows it → everything</text>
+      </g>
+      <path class="ln on" d="M170 194 V210" marker-end="url(#cg2)"/>
+      <text x="170" y="206" text-anchor="start" font-size="11" class="t3 m" dx="8">flag per step</text>
+      <g text-anchor="middle" font-size="12" font-weight="700" class="m">
+        <rect class="f-on" x="6" y="214" width="60" height="44" rx="8"/><text x="36" y="233" class="tg">lint</text><text x="36" y="250" class="tg">true</text>
+        <rect class="f-on" x="71" y="214" width="60" height="44" rx="8"/><text x="101" y="233" class="tg">unit</text><text x="101" y="250" class="tg">true</text>
+        <rect class="f-off" x="136" y="214" width="60" height="44" rx="8"/><text x="166" y="233" class="t3">build</text><text x="166" y="250" class="t3">false</text>
+        <rect class="f-off" x="201" y="214" width="60" height="44" rx="8"/><text x="231" y="233" class="t3">e2e</text><text x="231" y="250" class="t3">false</text>
+        <rect class="f-off" x="266" y="214" width="68" height="44" rx="8"/><text x="300" y="233" class="t3">deploy</text><text x="300" y="250" class="t3">false</text>
+      </g>
+      <g>
+        <path class="ln on" d="M36 260 V282" marker-end="url(#cg2)"/><path class="ln on" d="M101 260 V282" marker-end="url(#cg2)"/>
+        <path class="ln" d="M166 260 V282" marker-end="url(#cx2)"/><path class="ln" d="M231 260 V282" marker-end="url(#cx2)"/><path class="ln" d="M300 260 V282" marker-end="url(#cx2)"/>
+      </g>
+      <g text-anchor="middle" font-size="12" font-weight="700" class="m">
+        <rect class="f-on" x="6" y="284" width="60" height="44" rx="8"/><text x="36" y="303" class="tg">lint</text><text x="36" y="320" class="tg">runs</text>
+        <rect class="f-on" x="71" y="284" width="60" height="44" rx="8"/><text x="101" y="303" class="tg">unit</text><text x="101" y="320" class="tg">runs</text>
+        <rect class="f-off" x="136" y="284" width="60" height="44" rx="8"/><text x="166" y="303" class="t3">build</text><text x="166" y="320" class="t3">skips</text>
+        <rect class="f-off" x="201" y="284" width="60" height="44" rx="8"/><text x="231" y="303" class="t3">e2e</text><text x="231" y="320" class="t3">skips</text>
+        <rect class="f-off" x="266" y="284" width="68" height="44" rx="8"/><text x="300" y="303" class="t3">deploy</text><text x="300" y="320" class="t3">skips</text>
+      </g>
+      <path class="ln" d="M36 330 V348 H300 V330"/>
+      <path class="ln on" d="M170 348 V366" marker-end="url(#cg2)"/>
+      <rect x="40" y="368" width="260" height="84" rx="12" fill="var(--agent-soft)" stroke="var(--agent)" stroke-width="2.5"/>
+      <text x="170" y="397" text-anchor="middle" font-size="17" font-weight="800" class="m tg">check</text>
+      <text x="170" y="418" text-anchor="middle" font-size="12.5" class="t2">the one required status</text>
+      <text x="170" y="437" text-anchor="middle" font-size="12.5" class="t2">skipped is fine; failure fails</text>
+      <text x="170" y="480" text-anchor="middle" font-size="12" class="t3">Docs-only PR: every job skips,</text>
+      <text x="170" y="496" text-anchor="middle" font-size="12" class="t3"><tspan class="m">check</tspan> still reports success.</text>
+    </svg>
+    </div>
+  </div>
+
+  <div class="split2">
+    <div class="card pr pth" style="margin:0">
+      <div class="route">changed path → steps that run</div>
+      <div class="row"><span><code>docs/guide.md</code>, <code>changes/</code>, plans</span><span class="yes">nothing</span></div>
+      <div class="row"><span><code>src/cart.ts</code></span><span>lint, unit, build, e2e, deploy</span></div>
+      <div class="row"><span><code>src/cart.test.ts</code></span><span>lint, unit</span></div>
+      <div class="row"><span><code>e2e/pay.spec.ts</code></span><span>lint, e2e (touched specs)</span></div>
+      <div class="row"><span><code>.github/workflows/</code>, lockfiles, <code>sdlc.json</code></span><span>everything</span></div>
+      <div class="row"><span>a file no list knows, <code>tools/x.sh</code></span><span>everything</span></div>
+    </div>
+    <div class="card" style="margin:0">
+      <h3>In <code>sdlc.json</code>, a TypeScript repo</h3>
+<pre class="code">"ciPaths": {
+  "docs": ["changes/*", "*.md"],
+  "all": [".github/workflows/*",
+          "sdlc.json", "*.lock*"],
+  "unit": {
+    "include": ["src/*"],
+    "exclude": ["e2e/*"] },
+  "e2e": { "include": [...],
+           "exclude": [...] },
+  ...
+}</pre>
+    </div>
+  </div>
+  <ul class="small muted" style="margin:14px 0 0;padding-left:18px">
+    <li>A step runs for a file that matches its <code>include</code> and not its <code>exclude</code>. Globs are shell globs; <code>*</code> also crosses <code>/</code>.</li>
+    <li>A file that matches nothing runs everything, so a forgotten path costs minutes, never a missed check. Migrations are never excluded.</li>
+    <li>E2E scope is separate: the full suite only on PRs into the default branch or <code>project/*</code> and on milestone heads; other PRs run the touched specs (A5).</li>
+    <li><code>adopt</code> writes the stack's defaults (TypeScript, Python, Rust, Rails, Kotlin, Scala) once and never overwrites them. <code>ciPaths</code> sits outside <code>checks</code>, so editing it needs no unlock.</li>
+    <li>A YAML counts as docs only if nothing reads it. Workflows, app config, k8s and terraform YAML are code.</li>
+  </ul>
+
+  <h3 style="margin-top:34px">Commands per stack</h3>
+  <div class="stk" role="table" aria-label="Commands per stack: touched tests, production target, shard, retry">
+    <div class="srow h" role="row"><div>Stack</div><div>Touched tests</div><div>Production target</div><div>Shard</div><div>Retry</div></div>
+    <div class="srow" role="row"><div class="sn">TypeScript, JavaScript</div>
+      <div><span class="k">Touched tests</span><code>vitest related --run</code>, <code>playwright test &lt;specs&gt;</code></div>
+      <div><span class="k">Production target</span><code>next build &amp;&amp; next start</code></div>
+      <div><span class="k">Shard</span><code>playwright test --shard=i/N</code></div>
+      <div><span class="k">Retry</span><code>retries: 1</code></div></div>
+    <div class="srow" role="row"><div class="sn">Python</div>
+      <div><span class="k">Touched tests</span><code>uv run pytest &lt;files&gt;</code></div>
+      <div><span class="k">Production target</span>built wheel in a clean env, or the container image</div>
+      <div><span class="k">Shard</span><code>pytest -n auto</code>; pytest-split across jobs</div>
+      <div><span class="k">Retry</span><code>pytest --reruns 1</code></div></div>
+    <div class="srow" role="row"><div class="sn">Rust</div>
+      <div><span class="k">Touched tests</span><code>cargo nextest run -p &lt;crate&gt;</code></div>
+      <div><span class="k">Production target</span><code>cargo build --release</code>, test the binary</div>
+      <div><span class="k">Shard</span><code>--partition count:i/N</code></div>
+      <div><span class="k">Retry</span><code>--retries 1</code></div></div>
+    <div class="srow" role="row"><div class="sn">Ruby, Rails</div>
+      <div><span class="k">Touched tests</span><code>bundle exec rspec &lt;files&gt;</code></div>
+      <div><span class="k">Production target</span><code>RAILS_ENV=test</code>, eager load, assets precompiled</div>
+      <div><span class="k">Shard</span><code>parallel_rspec -n N</code>; knapsack across jobs</div>
+      <div><span class="k">Retry</span>rspec-retry, 2 attempts</div></div>
+    <div class="srow" role="row"><div class="sn">Kotlin</div>
+      <div><span class="k">Touched tests</span><code>./gradlew :module:test --tests 'pkg.FooTest'</code></div>
+      <div><span class="k">Production target</span><code>installDist</code> or <code>bootJar</code>, run the jar</div>
+      <div><span class="k">Shard</span><code>maxParallelForks</code>; module matrix across jobs</div>
+      <div><span class="k">Retry</span><code>org.gradle.test-retry</code>, <code>maxRetries = 1</code></div></div>
+    <div class="srow" role="row"><div class="sn">Scala</div>
+      <div><span class="k">Touched tests</span><code>sbt "testOnly pkg.FooSpec"</code></div>
+      <div><span class="k">Production target</span><code>sbt stage</code> or <code>assembly</code></div>
+      <div><span class="k">Shard</span>forked JVMs via <code>Test / testGrouping</code>; <code>testOnly</code> lists across jobs</div>
+      <div><span class="k">Retry</span>ScalaTest <code>Retries</code> on a listed suite</div></div>
+  </div>
+  <p class="small muted" style="margin-top:12px">Touched tests are the changed specs in the PR plus the tests of any module the diff touches. An empty set runs lint, types and unit tests only. One retry on CI: a pass on retry is reported, and fails the run only on a full run.</p>
+</section>
+
+<!-- verify -->
+<section>
+  <h2>Pick your tracker</h2>
+  <p class="sub">The plan's content always lives in the repo. The tracker only holds status and links, and a change never waits for one. You choose it once per repo, in one dialog with a recommendation.</p>
+  <div class="trk">
+    <div class="card tk rec"><span class="rb">Most complete</span>
+      <h3><span class="lg" style="background:#5e6ad2">L</span>Linear</h3>
+      <p>The richest. Initiatives, projects, milestones and sub-issues.</p>
+      <div class="setup">Connect the Linear MCP, pick the team</div>
+    </div>
+    <div class="card tk">
+      <h3><span class="lg" style="background:#24292f">G</span>GitHub Projects</h3>
+      <p>No extra tool. Issues, sub-issues, repo milestones and a Projects board.</p>
+      <div class="setup"><code>gh auth refresh -s project</code></div>
+    </div>
+    <div class="card tk">
+      <h3><span class="lg" style="background:#b7791f">B</span>Beads</h3>
+      <p>Local and in the repo. Epics with dependencies; <code>bd ready</code> shows what may start.</p>
+      <div class="setup"><code>brew install beads</code>, <code>bd init</code></div>
+    </div>
+    <div class="card tk">
+      <h3><span class="lg" style="background:var(--ink3)">–</span>None</h3>
+      <p>No tracker calls. The design docs and change folders are the plan until you set one up.</p>
+      <div class="setup">nothing to set up</div>
+    </div>
+  </div>
+
+  <div class="ladder" role="table" aria-label="How the four planning levels map to each tracker">
+    <div class="lrow h" role="row"><div>Level</div><div>Linear</div><div>GitHub</div><div>Beads</div></div>
+    <div class="lrow" role="row">
+      <div class="lv"><b>Initiative</b><span>several projects, one outcome</span></div>
+      <div><span class="k">Linear</span>Initiative</div><div><span class="k">GitHub</span>issue labeled initiative</div><div><span class="k">Beads</span>epic, label initiative</div>
+    </div>
+    <div class="lrow" role="row">
+      <div class="lv"><b>Project</b><span>one deliverable, one design; may span milestones</span></div>
+      <div><span class="k">Linear</span>Project</div><div><span class="k">GitHub</span>Projects board + tracking issue</div><div><span class="k">Beads</span>epic, label project</div>
+    </div>
+    <div class="lrow m" role="row">
+      <div class="lv"><b>Milestone</b><span>one shippable slice; one or several features</span></div>
+      <div><span class="k">Linear</span>Project milestone + one issue</div><div><span class="k">GitHub</span>repo Milestone</div><div><span class="k">Beads</span>epic, label milestone</div>
+    </div>
+    <div class="lrow" role="row">
+      <div class="lv"><b>Issue</b><span>one feature PR; hotfix goes to default</span></div>
+      <div><span class="k">Linear</span>sub-issue of the change</div><div><span class="k">GitHub</span>issue in the milestone</div><div><span class="k">Beads</span>feature, task or bug</div>
+    </div>
+  </div>
+
+  <div class="flow">
+    <div class="card lane">
+      <h3>Each feature's issue</h3>
+      <div class="steps2"><span class="s2">In Progress</span><span class="ar">→</span><span class="s2">In Review</span><span class="ar">→</span><span class="s2 done">Done</span></div>
+      <p>In a milestone: builder starts, PR opens, PR merges into the milestone. Feature branches and PRs carry the sub-issue key.</p>
+    </div>
+    <div class="card lane">
+      <h3>The change's issue</h3>
+      <div class="steps2"><span class="s2">In Progress</span><span class="ar">→ … →</span><span class="s2 done">Done</span></div>
+      <p>The milestone PR carries <code>Closes &lt;KEY&gt;</code>; feature PRs never carry the change’s key. In a project, that milestone PR targets the project branch. Archive only when the change reaches default.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Every check ends in one of three lines</h2>
+  <p class="sub"><code>verify_gate.py</code> runs the repo's checks in order and prints one verdict. The agent acts on it.</p>
+  <div class="verdicts">
+    <div class="card vd pass"><div class="tag">VERIFY PASS</div><p>All checks are green. The agent moves on to the next feature or stage.</p></div>
+    <div class="card vd fail"><div class="tag">VERIFY FAIL check=…</div><p>A named check failed. The agent fixes it and runs verify again.</p></div>
+    <div class="card vd block"><div class="tag">VERIFY BLOCKED reason=…</div><p>The agent cannot decide alone. It stops and asks you.</p>
+      <div class="chips"><span class="chip">not-approved</span><span class="chip">protected-path</span><span class="chip">flaky</span><span class="chip">no-progress</span><span class="chip">scope-growth</span><span class="chip">spec-conflict</span><span class="chip">test-proves-nothing</span><span class="chip">unknown-verdict</span><span class="chip">needs-baseline</span><span class="chip">allowlist-request</span><span class="chip">env</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- guardrails -->
+<section>
+  <h2>What the agent may never do</h2>
+  <p class="sub">Hooks and the lock file enforce edit boundaries. The runbook also limits scope, fix rounds and issue keys.</p>
+  <div class="rules">
+    <div class="rule"><div class="ic">⊘</div><p><b>Write code outside /goal</b>A hook refuses the edit.</p></div>
+    <div class="rule"><div class="ic">⊘</div><p><b>Change the approved plan</b>Facts, "done" and checks are locked. Only your words can open them.</p></div>
+    <div class="rule"><div class="ic">⊘</div><p><b>Edit a test to make it pass</b>A locked test stays as written.</p></div>
+    <div class="rule"><div class="ic">⊘</div><p><b>Start a second fix round</b>Remaining milestone findings go to the next milestone. Remaining project findings go to the next project.</p></div>
+    <div class="rule"><div class="ic">⊘</div><p><b>Decide scope for you</b>Ticket, size, kind and milestone are always your call.</p></div>
+    <div class="rule"><div class="ic">⊘</div><p><b>Open a PR for work that belongs to an open milestone</b>Fixes, test repairs and records are commits on <code>milestone/&lt;slug&gt;</code>. No PR holds only a record.</p></div>
+    <div class="rule"><div class="ic">⊘</div><p><b>Wait on a PR your code does not need</b>Build on. If the code does depend on it, merge that branch locally and carry on.</p></div>
+    <div class="rule"><div class="ic">⊘</div><p><b>Run the whole suite for one change</b>Touched tests only. The full suite runs once per milestone.</p></div>
+    <div class="rule"><div class="ic">⊘</div><p><b>Close the ticket early</b>In a milestone, only its PR carries the change’s key. Feature PRs carry their sub-issue key.</p></div>
+  </div>
+</section>
+
+<!-- commands -->
+<section>
+  <h2>How to use it</h2>
+  <p class="sub">A repo needs <code>adopt</code> once. After that, start and continue with one command.</p>
+  <div class="cmds">
+    <div class="card cmd"><code>/cct:sdlc-run add dark mode</code><p>Start a new change. A Linear ticket id works too.</p></div>
+    <div class="card cmd"><code>/cct:sdlc-run</code><p>Continue the change on the current branch, from wherever it stopped.</p></div>
+    <div class="card cmd"><code>/cct:sdlc-run status</code><p>See open changes, their stage and their gates.</p></div>
+    <div class="card cmd"><code>/cct:sdlc-run adopt</code><p>Set up a repo: config, verify script, hooks, and the stack's default <code>ciPaths</code> in <code>sdlc.json</code>. It checks your CI against the blueprint (step 8) and recommends the gaps. It never edits your <code>ci.yml</code>.</p></div>
+    <div class="card cmd"><code>/cct:sdlc-run tracker</code><p>Choose or switch the tracker: Linear, GitHub, Beads or none.</p></div>
+    <div class="card cmd"><code>references/ci-blueprint.md</code><p>The CI blueprint adopt compares against. A repo with no CI gets it written. The node and python presets exist; <code>ciPaths</code> defaults cover six stacks, and other stacks take the nearest preset and the row from the table above.</p></div>
+  </div>
+</section>
+
+<footer>Describes cct:sdlc-run v3.2.0 on calvins-claude-tools main, 31 October 2026. Details: the skill's references/stages.md and references/ci-blueprint.md.</footer>
+</main>
+</body>
+</html>
