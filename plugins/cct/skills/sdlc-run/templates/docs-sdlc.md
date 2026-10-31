@@ -67,7 +67,7 @@ none.
 | `planGate` | `owner` or `self`; self is barred for data safety, irreversible writes, security or money |
 | `testGlobs`, `prototypeDirs`, `feedback` | locked tests, prototype paths, owner-words files |
 | `verifyDirty`, `lintOnEdit`, `blocked[]` | hook inputs |
-| `claude`, `keep` | generated workflow policy |
+| `tiers`, `askGatesMerge`, `codeowners`, `claude`, `keep` | generated workflow policy |
 
 ## Where a change stands
 
@@ -111,18 +111,38 @@ column in `intent.md`. Links in the change folder stay inside the repo. `sdlc.js
 `feedback` contains repo paths or globs only.
 Run `marks.py init <id>` for Snapmark/reference images; fill `marks.json` against fresh headless shots in `verify/shots/`; milestone `owner-marks` checks it.
 
-## Merging
+{{#TIERS}}
+## Tiers: Ship / Show / Ask by blast radius
 
-**Only the PR into the default branch is reviewed.** A feature PR into `milestone/*`, and a
-milestone PR into `project/*`, are interior merges inside one change: they auto-merge on their
-checks alone, with no Claude review. The review workflow checks the PR's base ref itself, so
-this holds for a hand-opened PR too.
+`.github/tiers.json` decides the tier by path.
 
-The PR into `{{DEFAULT_BRANCH}}` runs `checks.milestone` and, unless `sdlc.json` says
-`claude: false`, the Claude review. It merges under the repo's own branch protection:
+**Only the PR into the default branch is tiered or reviewed.** A feature PR into
+`milestone/*`, and a milestone PR into `project/*`, are interior merges inside one change:
+they auto-merge on their checks alone, with no Claude review and no code owner. Both
+workflows check the PR's base ref themselves, so this holds for a hand-opened PR too.
+
+| Tier | Paths | Who looks |
+| --- | --- | --- |
+{{#ASK_GATES_MERGE}}
+| **ask** | {{ASK_PATHS}} | a code owner before merge |
+{{/ASK_GATES_MERGE}}
+{{#ASK_MERGES_ON_GREEN}}
+| **ask** | {{ASK_PATHS}} | highest blast radius; read it, but it does not gate merge |
+{{/ASK_MERGES_ON_GREEN}}
+| **show** | {{SHOW_PATHS}} | the co-owner after merge{{SHOW_CHANNEL_NOTE}} |
+| **ship** | everything else | nobody |
+
+`show` and `ship` auto-merge when required checks are green. The App token arms auto-merge,
+never `GITHUB_TOKEN`.
+{{/TIERS}}
+{{#NO_TIERS}}
+## Merging: auto-merge on green
+
+One owner, so no tiers (`sdlc.json` `tiers: false`). Every PR merges itself once it is green.
 
 - **Arm it:** `gh pr merge <n> --squash --auto`.
-- **What it waits for:** the required checks on `{{DEFAULT_BRANCH}}`.
+- **What it waits for:** required checks on `{{DEFAULT_BRANCH}}`.
+{{/NO_TIERS}}
 
 ## Claude in CI
 
@@ -131,12 +151,20 @@ The PR into `{{DEFAULT_BRANCH}}` runs `checks.milestone` and, unless `sdlc.json`
 | `claude-review.yml` | one review against `REVIEW.md`; `merge-gate` reads the tally |
 | `claude.yml` | handles `@claude` comments |
 | `ci-triage.yml` | posts a short failure triage |
+{{#TIERS}}
+| `ship-show-ask.yml` | ship-show-ask.yml labels it, requests reviewers and arms auto-merge |
+{{/TIERS}}
 
 ## Credentials
 
 | Name | Unlocks |
 | --- | --- |
 | `ANTHROPIC_API_KEY` | Claude workflows |
+{{#TIERS}}
+| `CODE_MANAGER_APP_CLIENT_ID`, `CODE_MANAGER_APP_PRIVATE_KEY` | App auto-merge |
+| `SDLC_COOWNER` | show reviewer |
+| `SDLC_SLACK_BOT_TOKEN` | optional show Slack notice |
+{{/TIERS}}
 
 ## Repo-specific
 

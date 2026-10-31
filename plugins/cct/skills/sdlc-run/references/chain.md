@@ -309,8 +309,12 @@ permalinks; local laptop paths are refused.
 | `blocked[]` | Bash hook, tests | blocked shell patterns with routes |
 | `toolsCommand` | SessionStart, docs | installs plannotator and plugin |
 | `tests`, `testFile` | adopt | rendered guardrail test type and path |
+| `codeowners` | adopt | generated CODEOWNERS owners |
 | `claude` | adopt, test | whether Claude workflows are generated |
 | `claudeAllow` | adopt | extra tools for `claude.yml` |
+| `showChannel` | adopt | Slack channel for show notices |
+| `tiers` | adopt, test, docs | Ship / Show / Ask on or off |
+| `askGatesMerge` | adopt | whether `ask` withholds auto-merge |
 | `keep` | adopt | generated paths this repo owns |
 | `checks.feature[]`, `checks.milestone[]` | `verify_gate.py` | commands, cheapest first; `{id}` is the change id; a string or `{name, run}` |
 | `milestones` | skill | `{branchPrefix, rebaseOnDefault}`; default `milestone/`, `true`. A milestone is cut from its parent: the project branch when the change has one, else the default branch |
