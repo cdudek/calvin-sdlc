@@ -145,3 +145,31 @@ not a delay added to get green (`waiting.md`).
 Fix the code, the harness or the fixture, and say which one changed and why. If the current
 workflow cannot edit product code, file the defect and leave the test red for the authorized
 product fix. A correct failing test is evidence to preserve.
+
+## K. Commands per stack
+
+The rules are language-neutral; this table is where the commands live. `sdlc-run`
+(`../../sdlc-run/references/ci-blueprint.md`) says when each applies. Fill `sdlc.json`
+`checks.feature`, `checks.milestone` and the CI jobs from the row for the repo's stack.
+
+- **Touched tests**: what an agent or a feature PR runs. Never the whole suite; the full suite
+  runs once per milestone and on the PRs the blueprint's A5 names.
+- **Production target**: what system and E2E tests start. Never a server that compiles or
+  reloads on demand: it times differently and hides build-only failures.
+- **Shard**: one job per slice, each with its own database service (section H). A suite on
+  one shared database cannot be sharded.
+- **Retry**: one retry on CI. A pass on retry is reported, not hidden; it fails the run only
+  on a full run (`FULL=true`, the blueprint's A5). Each reported flake goes on the committed list (section G).
+
+| Stack | Touched tests | Production target | Shard | Retry |
+|---|---|---|---|---|
+| TypeScript, JavaScript (Node, Next.js) | `npx vitest related --run <files>`; `npx playwright test <spec files>` | `next build && next start` (or the standalone server); other Node apps: the built `dist/` | `playwright test --shard=i/N` | `retries: 1`; `failOnFlakyTests` on a full run |
+| Python (uv, pytest) | `uv run pytest <test files>` | the built wheel installed in a clean env, or the container image | `pytest -n auto` in a job (xdist); `pytest --splits N --group i` across jobs (pytest-split) | `pytest --reruns 1` (pytest-rerunfailures); the JUnit XML names the reruns |
+| Rust (cargo, nextest) | `cargo nextest run -p <crate> <filter>` | the built binary: `cargo build --release`, then tests against it (`cargo nextest run --release`) | `cargo nextest run --partition count:i/N` | `--retries 1`; nextest prints `FLAKY` in its summary |
+| Ruby, Rails (rspec, parallel_tests, Capybara) | `bundle exec rspec <spec files>` | `RAILS_ENV=test`, `eager_load` on in CI, assets precompiled first (`bin/rails assets:precompile`) | `parallel_rspec -n N` in a job; `parallel_tests --only-group i --group-by runtime` or knapsack across jobs | rspec-retry: `config.default_retry_count = 2` (two attempts) and `verbose_retry` |
+| Kotlin (Gradle, JUnit) | `./gradlew :module:test --tests 'pkg.FooTest'` | `./gradlew installDist` or `bootJar`, then run the jar or the container image | `maxParallelForks` in a job; across jobs a matrix of modules or `--tests` lists (Gradle has no job sharding of its own) | the `org.gradle.test-retry` plugin: `maxRetries = 1`, `failOnPassedAfterRetry = false` |
+| Scala (sbt, ScalaTest) | `sbt "testOnly pkg.FooSpec"` | `sbt stage` (or `assembly`), then the staged binary or the container image | `Test / testGrouping` with forked JVMs in a job; across jobs `testOnly` lists | ScalaTest `Retries` (`withRetry`) on a listed suite; or rerun failures with `sbt testQuick` |
+
+A PR's changed specs are the files from `git diff --name-only <base>...HEAD` that match the
+stack's test globs, plus the tests of any crate, module or package the diff touches. An empty
+set runs lint, types and unit tests only.

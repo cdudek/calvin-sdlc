@@ -4,7 +4,7 @@ description: OMR's rulebook for end-to-end tests, the automated checks that clic
 allowed-tools: "Bash(npx:*) Bash(npm:*) Bash(node:*) Bash(bash */e2e-test-run/scripts/*) Read Grep Glob"
 user_invocable: true
 metadata:
-  version: 2.0.0
+  version: 2.1.0
   author: calvindudek
 ---
 
@@ -29,7 +29,7 @@ wrong in one of them within a month.
 | Which locator? How do I keep copy out of a spec? Personas and sign-in? | `references/locator-policy.md` |
 | How do I wait for something? Timers, network, hydration, downloads, polling? | `references/waiting.md` |
 | Installing Playwright, config, auth setup, CI, debugging, upstream tools | `references/setup-and-tools.md` |
-| Why is the suite slow or unreliable? Measurement, control runs, fixtures, load, gate repeats, known traps and repair boundaries | `references/suite-speed-and-reliability.md` |
+| Why is the suite slow or unreliable? Measurement, control runs, fixtures, load, gate repeats, known traps and repair boundaries. The command per stack for touched tests, production target, sharding and one retry | `references/suite-speed-and-reliability.md` |
 
 ## In one sentence
 

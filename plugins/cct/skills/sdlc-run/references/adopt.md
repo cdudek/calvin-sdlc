@@ -84,6 +84,14 @@ table, which is what makes `F1` traceable from `facts.md` through the test to th
    `tiers: false`, arm auto-merge on it like on any other PR.
 7. The CLAUDE.md section it appended states the process and `/goal`; if the repo's
    CLAUDE.md said "ask before merging", change it to "the tier decides".
+8. **CI.** `adopt` never edits the repo's own `ci.yml`. Compare it with `references/ci-blueprint.md`
+   and recommend each gap to the engineer: docs-only PRs skipped behind one `check` status,
+   E2E against the built artifact, sharded, one retry, full E2E only where A5 says, and a
+   ruleset that gives `project/*` (and `milestone/*` with `delivery: "feature-prs"`) the same
+   required `check`. A repo with no CI gets the blueprint written. Only the `node` and
+   `python` presets exist; for Ruby, Rails, Rust, Kotlin or Scala pick the nearest preset and
+   replace `checks.*` and `tests` with the row from
+   `../e2e-test-run/references/suite-speed-and-reliability.md` section K.
 
 ## A repo that already ran the old `goals/` skill
 
