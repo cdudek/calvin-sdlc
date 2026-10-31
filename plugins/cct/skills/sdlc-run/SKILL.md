@@ -6,7 +6,7 @@ description: >-
   branch and closes the milestone with the heavy checks once and one PR (one go, the default;
   per-feature PRs remain as an option). Work
   spanning several milestones adds a project branch between the milestones and the trunk; only
-  the PR into the default branch is reviewed and tiered. Use when someone starts or continues a
+  the PR into the default branch is reviewed. Use when someone starts or continues a
   feature, bug fix, refactor, docs change, chore, hotfix, milestone or project, asks "how do we
   do X here", or says "run sdlc", "adopt sdlc", "sdlc status". Subcommands: "adopt" installs the
   chain, "status" lists open changes and gates.
@@ -32,7 +32,7 @@ effort: high
 7 Outcome + archive: archive on merge, read the success measure after release
 
 Branches: <default> ─ [project/<slug>] ─ milestone/<slug> ─ features
-          only the PR into <default> is reviewed and tiered
+          only the PR into <default> is reviewed
 ```
 
 One change folder `changes/<YYYY-MM-DD>[-<KEY>]-<slug>/` holds intent, `spec/`, facts, plan,
@@ -59,7 +59,7 @@ The user input is: $ARGUMENTS
 
 | Input | Do |
 |---|---|
-| `adopt [--dry-run] [--preset node\|python]` | Install or refresh the chain → `references/adopt.md`. First ask "Use Ship/Show/Ask?" (that file, "Ask first"), on the first adopt and on every upgrade. |
+| `adopt [--dry-run] [--preset node\|python]` | Install or refresh the chain → `references/adopt.md`. |
 | `status [<id>]` · `status --shipped [n]` | `bash ${CLAUDE_SKILL_DIR}/scripts/status.sh …`, then `python3 scripts/sdlc_status.py map` for every milestone and this one's features. |
 | `<title>` or a ticket id | Start at Stage 1.0. |
 | `tracker` | Choose or set up the tracker → `references/trackers.md`. |
@@ -160,19 +160,19 @@ Two shapes. **One milestone** is the default and is unchanged:
   (`references/stages.md` → Wall clock).
 - Milestone of one: one change, both checks. Hotfix: `--base <defaultBranch>`, feature checks only.
 
-### Only the PR into `<defaultBranch>` is reviewed and tiered
+### Only the PR into `<defaultBranch>` is reviewed
 
 Everything below the trunk is an **interior merge inside one change**: a feature PR into
 `milestone/*`, a milestone PR into `project/*`. Those carry code that has not reached anyone
 yet, and they auto-merge on their checks alone.
 
-| PR | Checks | Claude review | Ship/Show/Ask | Who approves |
-|---|---|---|---|---|
-| feature → `milestone/*` | `checks.feature` | no | no | nobody; auto-merge on green |
-| milestone → `project/*` | `checks.milestone` | no | no | nobody; auto-merge on green |
-| `project/*` or `milestone/*` → `<defaultBranch>` | `checks.milestone` | **yes** | **yes** | the tier decides |
+| PR | Checks | Claude review | Merge |
+|---|---|---|---|
+| feature → `milestone/*` | `checks.feature` | no | auto-merge on green |
+| milestone → `project/*` | `checks.milestone` | no | auto-merge on green |
+| `project/*` or `milestone/*` → `<defaultBranch>` | `checks.milestone` | **yes** (when `claude` is on) | the repo's branch protection; auto-merge on green |
 
-Both CI workflows enforce this themselves, by comparing
+The review workflow enforces this itself, by comparing
 `github.event.pull_request.base.ref` with the repository's default branch — so the rule holds
 even for a PR opened by hand. Reviewing every interior PR re-reads the same diff two or three
 times on its way up and costs ~$1 each time; the integration PR is where the whole change is
@@ -207,6 +207,5 @@ first seen as one thing, and that is where it is read.
 - `references/chain.md` — folder layout, decisions, frontmatter, `sdlc.json` keys, history.
 - `references/requirements-grammar.md` — EARS and Gherkin grammar for `facts.md`.
 - `references/adopt.md` — what `adopt` writes, what stays manual, migrations.
-- `references/tiers.md` — Ship / Show / Ask by path.
 - `references/playbook.md` — playbook mapping and metrics.
 - `references/layout-research.md` — why `changes/` plus archive.

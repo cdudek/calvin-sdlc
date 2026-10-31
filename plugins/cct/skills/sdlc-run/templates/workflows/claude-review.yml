@@ -128,10 +128,14 @@ jobs:
           if [ -z "$tally" ]; then
             # The action skips itself when THIS file differs from master (anti-tamper: a PR
             # cannot rewrite its own reviewer). That is the one legitimate missing tally, and
-            # it is checked against the PR's file list, not assumed, and a human reads such a
-            # PR before it merges.
+            # it is checked against the PR's file list, not assumed. Claude cannot review such
+            # a PR, so it fails closed: only a human approval lets it through.
             if gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json files --jq '.files[].path' | grep -qx '.github/workflows/claude-review.yml'; then
-              echo "::notice::this PR changes claude-review.yml, so the action skipped itself; a human reads it before it merges"; exit 0
+              decision=$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json reviewDecision --jq .reviewDecision)
+              if [ "$decision" = "APPROVED" ]; then
+                echo "::notice::this PR changes claude-review.yml and a human approved it"; exit 0
+              fi
+              echo "::error::this PR changes claude-review.yml, so Claude cannot review it; a human must approve it"; exit 1
             fi
             echo "::error::no Claude review tally on this PR yet -- add the re-review label"; exit 1
           fi

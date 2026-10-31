@@ -254,10 +254,10 @@ a change small enough for one milestone has one.
      `sdlc.json` `ux` is `off`, the size is `none`, or the PR changes no interface file.
      Supplied marks and reference images still require comparison, even when the UX skill is skipped.
   8. Arm auto-merge. PR CI runs the full E2E suite; fix until mergeable. This PR is
-     **interior** — its base is `milestone/<slug>`, not the default branch — so neither the
-     Claude review nor Ship/Show/Ask runs on it, and no human is asked to approve it. Both
-     workflows skip themselves on the base ref (`references/tiers.md`). The code is reviewed
-     once, on the PR that reaches the default branch.
+     **interior** (its base is `milestone/<slug>`, not the default branch), so the Claude
+     review does not run on it, and no human is asked to approve it. The review workflow skips
+     itself on the base ref. The code is reviewed once, on the PR that reaches the default
+     branch.
   9. On merge: the feature's row in `milestone.md` → `merged`; the next feature starts.
 - **Failure modes:** an edit outside `/goal` (refused), a protected-path edit (refused), a test
   edited to pass.
@@ -369,8 +369,8 @@ person's own browser session. Never use Claude in Chrome or any tool driving tha
    opens its PR into the default branch once milestone `n-1` has merged (`git rebase --onto
    origin/<default> milestone/<slug>-<n-1>` first); the build of `n+1` goes on meanwhile.
    Into a project it is an interior PR:
-   no Claude review, no tier, auto-merge armed on green. Into the default branch the tier
-   decides. **The engineer accepts the milestone** in one `AskUserQuestion`: "Accept
+   no Claude review, auto-merge armed on green. Into the default branch it gets the Claude
+   review (when `claude` is on) and merges under the repo's branch protection. **The engineer accepts the milestone** in one `AskUserQuestion`: "Accept
    (Recommended)" with the one-line reason, or "Hold" with what is left. One go: no dialog;
    auto-merge is armed on green and the engineer reads `validation.md` in the PR. The dialog
    comes only when a Critical or High would be deferred.
