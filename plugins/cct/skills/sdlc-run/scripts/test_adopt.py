@@ -2,7 +2,7 @@
 
 A throwaway git repo per test (node or python by marker file), adopt run on it, then:
 every generated file exists, no `{{TOKEN}}` survives, hooks are executable and do what
-sdlc.json says, a second run writes nothing, the retired merge-tier files are removed.
+sdlc.json says, a second run writes nothing, CODEOWNERS follows `codeowners`.
 The rendered guardrail test itself runs in the adopting repo's CI, not here.
 """
 
@@ -20,6 +20,11 @@ import pytest
 
 SCRIPTS = Path(__file__).resolve().parent
 ADOPT = SCRIPTS / "adopt.py"
+# Read, not imported: importing adopt.py runs it. A fork may flip the default, and these tests
+# must hold either way.
+TIERS_DEFAULT = (
+    re.search(r"^TIERS_DEFAULT = (True|False)$", ADOPT.read_text(), re.M).group(1) == "True"
+)
 TOKEN = re.compile(r"\{\{[A-Z_]+\}\}|\{\{#\w+\}\}|\{\{/\w+\}\}")
 
 
@@ -48,7 +53,11 @@ def _repo(tmp_path: Path, kind: str) -> Path:
     return repo
 
 
-def _adopt(repo: Path, *args: str) -> subprocess.CompletedProcess[str]:
+def _adopt(repo: Path, *args: str, tiers: str | None = "yes") -> subprocess.CompletedProcess[str]:
+    """Runs adopt as the skill does: with the engineer's Ship/Show/Ask answer, `yes` unless the
+    test says otherwise. `tiers=None` runs it with no answer, where TIERS_DEFAULT applies."""
+    if tiers and "--tiers" not in args:
+        args = (*args, "--tiers", tiers)
     return subprocess.run(
         [sys.executable, str(ADOPT), *args], cwd=repo, capture_output=True, text=True, env=_env()
     )
@@ -72,9 +81,12 @@ GENERATED = [
     ".claude/hooks/plan-gate.sh",
     ".claude/hooks/session-check.sh",
     ".claude/hooks/verify-on-stop.sh",
+    ".github/tiers.json",
+    ".github/workflows/ship-show-ask.yml",
     ".github/workflows/claude-review.yml",
     ".github/workflows/claude.yml",
     ".github/workflows/ci-triage.yml",
+    "scripts/ship_show_ask.py",
     "scripts/verify_gate.py",
     "scripts/marks.py",
     "scripts/sdlc_status.py",
@@ -113,8 +125,10 @@ def test_adopt_renders_everything_without_leftover_tokens(
     )
     assert "docs/sdlc.md" in (repo / "CLAUDE.md").read_text()
     assert "workflows: [Checks]" in (repo / ".github" / "workflows" / "ci-triage.yml").read_text()
-    docs = (repo / "docs" / "sdlc.md").read_text()
-    assert "## Merging" in docs and "gh pr merge <n> --squash --auto" in docs
+    assert not (repo / ".github" / "CODEOWNERS").exists(), "no codeowners named -> no file"
+    assert "notify:" not in (repo / ".github" / "workflows" / "ship-show-ask.yml").read_text(), (
+        "no showChannel -> no notify job"
+    )
     # claude.yml is rendered per preset. It was once committed rendered-in-place (63f3c1a),
     # which gave every Python repo a pnpm setup step and a pnpm allow-list.
     claude_yml = (repo / ".github" / "workflows" / "claude.yml").read_text()
@@ -155,6 +169,28 @@ def test_dry_run_touches_nothing(tmp_path: Path) -> None:
     out = _sections(_adopt(repo, "--dry-run").stdout)
     assert "sdlc.json" in out["WROTE"]
     assert not (repo / "sdlc.json").exists()
+
+
+def test_codeowners_and_notify_follow_sdlc_json(tmp_path: Path) -> None:
+    repo = _repo(tmp_path, "node")
+    _adopt(repo)
+    cfg = json.loads((repo / "sdlc.json").read_text())
+    cfg["codeowners"] = ["@alice", "@bob"]
+    cfg["showChannel"] = "C123"
+    (repo / "sdlc.json").write_text(json.dumps(cfg))
+    _adopt(repo)
+    owners = (repo / ".github" / "CODEOWNERS").read_text()
+    tiers = json.loads((repo / ".github" / "tiers.json").read_text())
+    rules = [line.split() for line in owners.splitlines() if line and not line.startswith("#")]
+    assert len(rules) == len(tiers["ask"])
+    assert all(r[1:] == ["@alice", "@bob"] for r in rules)
+    assert "/k8s/  @alice @bob" in owners
+    ssa = (repo / ".github" / "workflows" / "ship-show-ask.yml").read_text()
+    assert "notify:" in ssa and 'CHANNEL: "C123"' in ssa
+    cfg["codeowners"] = []
+    (repo / "sdlc.json").write_text(json.dumps(cfg))
+    _adopt(repo)
+    assert not (repo / ".github" / "CODEOWNERS").exists()
 
 
 def test_rendered_hooks_read_sdlc_json(tmp_path: Path) -> None:
@@ -385,14 +421,14 @@ def test_migrates_goals_and_claude_plans(tmp_path: Path) -> None:
 def test_keep_list_protects_a_generated_file(tmp_path: Path) -> None:
     repo = _repo(tmp_path, "node")
     _adopt(repo)
-    wf = repo / ".github" / "workflows" / "claude-review.yml"
+    wf = repo / ".github" / "workflows" / "ship-show-ask.yml"
     wf.write_text("# hand-tuned\n")
     cfg = json.loads((repo / "sdlc.json").read_text())
-    cfg["keep"] = [".github/workflows/claude-review.yml"]
+    cfg["keep"] = [".github/workflows/ship-show-ask.yml"]
     (repo / "sdlc.json").write_text(json.dumps(cfg))
     out = _sections(_adopt(repo).stdout)
     assert wf.read_text() == "# hand-tuned\n"
-    assert any("claude-review.yml (sdlc.json keep)" in k for k in out["KEPT"])
+    assert any("ship-show-ask.yml (sdlc.json keep)" in k for k in out["KEPT"])
 
 
 def test_linear_safe_rewrites_repo_paths_and_refuses_local_ones(tmp_path: Path) -> None:
@@ -516,7 +552,7 @@ def test_runs_the_repos_own_prettier_over_what_it_wrote(tmp_path: Path) -> None:
     assert argv[0] == "--write", argv[:3]
     formatted = [a for a in argv if not a.startswith("--")]
     assert any(a.endswith("tests/sdlc.test.ts") for a in formatted), formatted
-    assert any(a.endswith(".github/workflows/claude-review.yml") for a in formatted), formatted
+    assert any(a.endswith(".github/workflows/ship-show-ask.yml") for a in formatted), formatted
     # sdlc.json on a SECOND run is the real case: it exists, so it takes the merge path
     # instead of write(), and it still has to reach prettier or the repo rejects the commit.
     (repo / "prettier-argv.txt").unlink()
@@ -664,7 +700,7 @@ def test_migrates_legacy_change_ids_and_drops_pending(tmp_path: Path) -> None:
 
 def test_claude_false_writes_no_claude_workflows_and_removes_existing_ones(tmp_path: Path) -> None:
     """sdlc.json `claude: false`: the three token-spending workflows are neither written nor
-    kept. Flipping back to true writes them again."""
+    kept; ship-show-ask.yml is untouched. Flipping back to true writes them again."""
     repo = _repo(tmp_path, "node")
     env = _env()
     assert _adopt(repo).returncode == 0
@@ -684,6 +720,7 @@ def test_claude_false_writes_no_claude_workflows_and_removes_existing_ones(tmp_p
     out = _sections(_adopt(repo).stdout)
     for name in ("claude-review.yml", "claude.yml", "ci-triage.yml"):
         assert not (wf / name).exists(), name
+    assert (wf / "ship-show-ask.yml").exists()
     assert any("claude-review.yml (removed" in w for w in out["WROTE"])
     assert any("no merge-gate" in m for m in out["MANUAL"]) and not any(
         "ANTHROPIC_API_KEY" in m for m in out["MANUAL"]
@@ -699,18 +736,11 @@ def test_claude_false_writes_no_claude_workflows_and_removes_existing_ones(tmp_p
     assert (wf / "claude-review.yml").exists()
 
 
-# What the retired merge tiers left in an adopted repo, planted by hand: adopt no longer
-# writes any of it. The CODEOWNERS header is the one adopt used to generate.
-RETIRED = {
-    ".github/workflows/ship-show-ask.yml": "name: ship-show-ask\n",
-    "scripts/ship_show_ask.py": "print('ask')\n",
-    ".github/tiers.json": '{"order": ["ask", "show", "ship"]}\n',
-    ".github/CODEOWNERS": "# GENERATED by `run-sdlc adopt` from sdlc.json (codeowners)\n/k8s/  @alice\n",
-}
-RETIRED_KEYS = {"tiers": True, "askGatesMerge": True, "codeowners": ["@alice"], "showChannel": "C1"}
-OLD_SENTENCES = (
-    "That PR is labelled by blast radius: `ask` needs a human, `show` and `ship` auto-merge on green.",
-    "There are no Ship/Show/Ask tiers here, so that PR auto-merges on green too.",
+TIER_FILES = (
+    ".github/workflows/ship-show-ask.yml",
+    "scripts/ship_show_ask.py",
+    ".github/tiers.json",
+    ".github/CODEOWNERS",
 )
 
 
@@ -731,72 +761,132 @@ def _set_cfg(repo: Path, **fields: object) -> None:
     (repo / "sdlc.json").write_text(json.dumps(cfg, indent=2) + "\n")
 
 
-@pytest.mark.parametrize("old_sentence", OLD_SENTENCES)
-def test_adopt_removes_the_retired_merge_tiers(tmp_path: Path, old_sentence: str) -> None:
-    """A repo adopted while the merge tiers existed: the next adopt `git rm`s their files,
-    drops their sdlc.json keys, rewrites the CLAUDE.md sentence, and reports each in WROTE."""
-    repo = _repo(tmp_path, "node")
-    assert _adopt(repo).returncode == 0
-    for rel, text in RETIRED.items():
-        (repo / rel).parent.mkdir(parents=True, exist_ok=True)
-        (repo / rel).write_text(text)
-    _set_cfg(repo, **RETIRED_KEYS)
-    claude = repo / "CLAUDE.md"
-    new_sentence = (
-        "That PR runs the milestone checks and merges under the repo's own branch protection: "
-        "auto-merge on green."
-    )
-    assert new_sentence in claude.read_text()
-    claude.write_text(claude.read_text().replace(new_sentence, old_sentence))
-    _commit(repo, "adopted with merge tiers")
-
-    result = _adopt(repo)
+@pytest.mark.parametrize("kind", ["node", "python"])
+def test_tiers_false_writes_no_tier_files_and_no_tier_docs(tmp_path: Path, kind: str) -> None:
+    """sdlc.json `tiers: false`, set before the first adopt: one owner, no Ship/Show/Ask."""
+    repo = _repo(tmp_path, kind)
+    cfg = json.loads((SCRIPTS.parent / "templates" / "presets" / f"{kind}.json").read_text())
+    cfg.update(tiers=False, codeowners=["@alice"], showChannel="C123")
+    (repo / "sdlc.json").write_text(json.dumps(cfg, indent=2) + "\n")
+    result = _adopt(repo, tiers=None)
     assert result.returncode == 0, result.stderr
-    out = _sections(result.stdout)
-    for rel in RETIRED:
+    for rel in TIER_FILES:
         assert not (repo / rel).exists(), rel
-        assert any(w.startswith(f"{rel} (removed: ") for w in out["WROTE"]), (rel, out["WROTE"])
+    docs = (repo / "docs" / "sdlc.md").read_text()
+    assert "Ship / Show / Ask" not in docs and "ship-show-ask" not in docs
+    assert "## Merging: auto-merge on green" in docs and "gh pr merge <n> --squash --auto" in docs
+    assert "CODE_MANAGER_APP" not in docs and "SDLC_COOWNER" not in docs
+    assert "`ask` needs a human" not in (repo / "CLAUDE.md").read_text()
+    for rel in ("docs/sdlc.md", "CLAUDE.md"):
+        text = (repo / rel).read_text()
+        assert not TOKEN.search(text), f"{rel}: unrendered {TOKEN.search(text).group(0)}"
+    manual = "\n".join(_sections(result.stdout)["MANUAL"])
+    for word in ("CODE_MANAGER_APP", "SDLC_COOWNER", "SDLC_SLACK_BOT_TOKEN", "code_owner", "App"):
+        assert word not in manual, word
+    assert "ship_show_ask" not in manual
+
+
+def test_tiers_false_removes_existing_tier_files(tmp_path: Path) -> None:
+    repo = _repo(tmp_path, "node")
+    _adopt(repo)
+    _set_cfg(repo, codeowners=["@alice"])
+    _adopt(repo)
+    for rel in TIER_FILES:
+        assert (repo / rel).exists(), rel
+    claude_before = (repo / "CLAUDE.md").read_text()
+    assert "`ask` needs a human" in claude_before
+    _commit(repo, "adopted with tiers")
+
+    _set_cfg(repo, tiers=False)
+    out = _sections(_adopt(repo, tiers=None).stdout)
+    for rel in TIER_FILES:
+        assert not (repo / rel).exists(), rel
+        assert f"{rel} (removed: sdlc.json tiers=false)" in out["WROTE"], rel
     tracked = subprocess.run(
         ["git", "ls-files"], cwd=repo, capture_output=True, text=True, env=_env()
-    ).stdout.splitlines()
-    assert not [rel for rel in RETIRED if rel in tracked], "git rm, not just unlink"
-    cfg = json.loads((repo / "sdlc.json").read_text())
-    for key in RETIRED_KEYS:
-        assert key not in cfg, key
-        assert f"sdlc.json: `{key}` removed (merge tiers retired)" in out["WROTE"], key
-    text = claude.read_text()
-    assert old_sentence not in text and new_sentence in text
-    assert "CLAUDE.md" in out["WROTE"]
-    # The next run finds nothing left to migrate.
-    assert _sections(_adopt(repo).stdout)["WROTE"] == []
-
-
-def test_adopt_keeps_a_hand_written_codeowners(tmp_path: Path) -> None:
-    repo = _repo(tmp_path, "node")
-    owners = repo / ".github" / "CODEOWNERS"
-    owners.write_text("* @team\n")
-    _commit(repo, "own codeowners")
-    out = _sections(_adopt(repo).stdout)
-    assert owners.read_text() == "* @team\n"
-    assert not any("CODEOWNERS" in w for w in out["WROTE"])
+    ).stdout
+    assert not [rel for rel in TIER_FILES if rel in tracked], "git rm, not just unlink"
+    assert "## Merging" in (repo / "docs" / "sdlc.md").read_text()
+    claude_after = (repo / "CLAUDE.md").read_text()
+    assert "`ask` needs a human" not in claude_after
+    assert "There are no Ship/Show/Ask tiers here" in claude_after
+    # The swap leaves a whole sentence, not a dangling fragment: an earlier replacement was
+    # a lowercase clause with no full stop, which rendered as an orphan line mid-paragraph.
+    assert "auto-merges on green too." in claude_after
+    # And the next run leaves it alone.
+    assert _sections(_adopt(repo, tiers=None).stdout)["WROTE"] == []
 
 
 @pytest.mark.parametrize("kind", ["node", "python"])
-def test_fresh_adopt_says_nothing_about_merge_tiers(tmp_path: Path, kind: str) -> None:
-    repo = _repo(tmp_path, kind)
-    result = _adopt(repo)
+def test_no_answer_renders_like_answering_the_kit_default(tmp_path: Path, kind: str) -> None:
+    """No `--tiers` and no `tiers` key is byte-identical to answering TIERS_DEFAULT."""
+    (tmp_path / "a").mkdir()
+    (tmp_path / "b").mkdir()
+    default, explicit = _repo(tmp_path / "a", kind), _repo(tmp_path / "b", kind)
+    _adopt(default, tiers=None)
+    _adopt(explicit, tiers="yes" if TIERS_DEFAULT else "no")
+    generated = [
+        p.relative_to(default)
+        for p in default.rglob("*")
+        if p.is_file() and ".git" not in p.parts and p.name != "sdlc.json"
+    ]
+    for rel in generated:
+        assert (explicit / rel).read_bytes() == (default / rel).read_bytes(), rel
+
+
+@pytest.mark.parametrize("kind", ["node", "python"])
+def test_tiers_yes_renders_the_tiers(tmp_path: Path, kind: str) -> None:
+    default = _repo(tmp_path, kind)
+    _adopt(default, tiers="yes")
+    docs = (default / "docs" / "sdlc.md").read_text()
+    assert "## Tiers: Ship / Show / Ask by blast radius" in docs and "## Merging" not in docs
+    assert "ship-show-ask.yml labels it" in docs and "CODE_MANAGER_APP_CLIENT_ID" in docs
+    for rel in TIER_FILES[:3]:
+        assert (default / rel).exists(), rel
+
+
+@pytest.mark.parametrize("answer", ["yes", "no"])
+def test_tiers_answer_on_first_adopt_is_written_to_sdlc_json(tmp_path: Path, answer: str) -> None:
+    """The skill asks "Use Ship/Show/Ask?" and passes the answer; sdlc.json records it."""
+    repo = _repo(tmp_path, "node")
+    result = _adopt(repo, "--tiers", answer)
     assert result.returncode == 0, result.stderr
-    tier = re.compile(
-        r"ship.?show.?ask|tiers\.json|\btiers\b|\btiered\b|ask.?tier|"
-        r"SDLC_COOWNER|CODE_MANAGER_APP",
-        re.I,
-    )
-    for path in repo.rglob("*"):
-        if path.is_file() and ".git" not in path.parts:
-            hit = tier.search(path.read_text(encoding="utf-8", errors="replace"))
-            assert not hit, f"{path.relative_to(repo)}: {hit.group(0)}"
-    assert not tier.search(result.stdout), result.stdout
-    assert not (repo / ".github" / "CODEOWNERS").exists()
+    assert json.loads((repo / "sdlc.json").read_text())["tiers"] is (answer == "yes")
+    for rel in TIER_FILES[:3]:
+        assert (repo / rel).exists() is (answer == "yes"), rel
+
+
+def test_tiers_answer_on_upgrade_switches_an_adopted_repo(tmp_path: Path) -> None:
+    repo = _repo(tmp_path, "node")
+    _adopt(repo, "--tiers", "yes")
+    _commit(repo, "adopted with tiers")
+    out = _sections(_adopt(repo, "--tiers", "no").stdout)
+    assert "sdlc.json: tiers false (Ship/Show/Ask: no)" in out["WROTE"]
+    assert json.loads((repo / "sdlc.json").read_text())["tiers"] is False
+    for rel in TIER_FILES[:3]:
+        assert not (repo / rel).exists(), rel
+    # The same answer again changes nothing.
+    assert _sections(_adopt(repo, "--tiers", "no").stdout)["WROTE"] == []
+
+
+def test_without_an_answer_a_missing_tiers_key_is_written_as_the_default(tmp_path: Path) -> None:
+    """The guardrail test in the repo reads a missing key as true, so adopt never leaves it out."""
+    repo = _repo(tmp_path, "node")
+    _adopt(repo)
+    _set_cfg(repo, tiers=False)
+    _adopt(repo, tiers=None)
+    assert json.loads((repo / "sdlc.json").read_text())["tiers"] is False, "a set value stays"
+    cfg = json.loads((repo / "sdlc.json").read_text())
+    del cfg["tiers"]
+    (repo / "sdlc.json").write_text(json.dumps(cfg, indent=2) + "\n")
+    out = _sections(_adopt(repo, tiers=None).stdout)
+    assert f"sdlc.json: tiers {str(TIERS_DEFAULT).lower()} (the kit default)" in out["WROTE"]
+    assert json.loads((repo / "sdlc.json").read_text())["tiers"] is TIERS_DEFAULT
+
+
+def test_tiers_takes_only_yes_or_no(tmp_path: Path) -> None:
+    result = _adopt(_repo(tmp_path, "node"), "--tiers", "maybe")
+    assert result.returncode != 0 and "--tiers takes yes or no" in result.stderr
 
 
 def test_default_branch_comes_from_the_remote_when_origin_head_is_unset(tmp_path: Path) -> None:
