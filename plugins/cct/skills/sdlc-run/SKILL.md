@@ -13,7 +13,7 @@ description: >-
 allowed-tools: "Read Grep Glob Edit Write Agent Skill AskUserQuestion Bash(bash */sdlc-run/scripts/*) Bash(python3 */sdlc-run/scripts/*) Bash(python3 scripts/verify_gate.py *) Bash(python3 scripts/sdlc_status.py *) Bash(git *) Bash(gh *) Bash(bd *) Bash(plannotator *) Bash(make *) Bash(pnpm *) Bash(uv *) Bash(npx *) EnterWorktree mcp__claude_ai_Linear__* mcp__linear__*"
 user_invocable: true
 metadata:
-  version: 3.1.1
+  version: 3.1.2
   author: calvindudek
 effort: high
 ---
@@ -180,8 +180,11 @@ first seen as one thing, and that is where it is read.
 
 ### Records, gates and waiting
 
-No PR carries only a record: plans, handovers, gate lines and findings ride in their
-milestone's PR. A merge gate exists only for a real code dependency; otherwise build on, or
+While a milestone is open, everything that belongs to it is a commit on `milestone/<slug>`, never
+its own PR: fixes found in the build, test and flaky-spec repairs, CI timeout tweaks its tests
+need, and records (plans, handovers, gate lines, findings). The milestone PR is its only PR;
+separate PRs only for other repositories and for changes the engineer sends to the default
+branch first. A merge gate exists only for a real code dependency; otherwise build on, or
 merge the dependency's branch locally. After a push, arm auto-merge, watch in the background and
 start the next independent row (at most 4 builders). Agents run only the tests they touched.
 CI runs each step (lint, unit, build, e2e, deploy) only when a changed path needs it, nothing for docs, and runs the full E2E suite only on the
@@ -197,7 +200,8 @@ commands: `references/stages.md` "Records, gates and waiting", `references/ci-bl
 - Edit a test to make verify pass, or while `testLocked` without `testEdit`.
 - Start a second fix round at the milestone. What is left goes to the next milestone.
 - Put a local path in any tracker (`scripts/linear-safe.py`); keep a plan in `.claude/plans/`.
-- Open a PR that holds only records, or wait on a PR your code does not depend on.
+- Open a PR for work that belongs to an open milestone; commit it on `milestone/<slug>`. Never
+  open a PR that holds only records, or wait on a PR your code does not depend on.
 - Run the whole suite to check one change: the touched tests only, the full suite once per
   milestone (`../e2e-test-run/references/suite-speed-and-reliability.md` section K).
 - Name the change's issue key in a feature branch or feature PR: its merge closes the change
