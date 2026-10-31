@@ -321,7 +321,9 @@ person's own browser session. Never use Claude in Chrome or any tool driving tha
    section G. Send inconsistent results to `flaky-test-fix`. Also run `cct:ux-audit` only
    when the change adds a screen,
    `cct:ux-validate build`, the `cct:verifier` and `cct:ac-auditor` agents for job
-   stories and facts, `cct:security-review` when auth, money or consent is touched.
+   stories and facts. `cct:security-review` runs only on the goal's last milestone, on the whole
+   goal diff (`git diff origin/<defaultBranch>...milestone/<slug>-<last>`), and only when auth, money or
+   consent is touched anywhere in it; in a project it waits for Stage 6p. Never on earlier milestones.
    The review starts while the last feature builds, and the full E2E starts with it, not after.
    Require the shared visual pass from each UX run: open every image, including responsive
    and state captures, and validate each issue against the repo's documents with the same
@@ -381,7 +383,8 @@ into `project/<slug>`.
 1. Rebase `project/<slug>` on `origin/<defaultBranch>` and push with lease.
 2. Re-run `checks.milestone` on `git diff origin/<defaultBranch>...project/<slug>` — the whole
    project as one diff. The per-milestone reviews each saw one slice; this is the first time
-   anything looks at the seams between them.
+   anything looks at the seams between them. Run `cct:security-review` on the same diff when auth, money or consent is touched;
+   it is the project's only security review.
 3. One PR `project/<slug>` → default branch. **This is the PR that CI reviews and tiers** — the
    first and only one in the whole chain that does. Auto-merge armed when the tier allows.
 4. **The engineer accepts the project** in one `AskUserQuestion`. No second fix round: what is

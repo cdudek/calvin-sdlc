@@ -274,6 +274,48 @@ shutil.copy2(HOME / "Downloads/HeyDiff Brand Guide-selection.pdf", EX / "heydiff
 print("blueprint + examples copied")
 
 
+# Calvin's changes to the kit's SDLC. Each old text must still be there, so a kit rewording fails the build.
+SEC = "when auth, money or consent is touched"
+PATCHES = [
+    # security-review runs once, at the very end of a goal or project, never per milestone
+    ("skills/sdlc-run/SKILL.md",
+     f"the `verifier` and `ac-auditor` agents for jobs and facts, `security-review` {SEC}. One findings list",
+     f"the `verifier` and `ac-auditor` agents for jobs and facts. **Last milestone of the goal only:** "
+     f"`security-review` on the whole goal diff {SEC} anywhere in it (in a project it waits for 6p). One findings list"),
+    ("skills/sdlc-run/SKILL.md",
+     "re-run `checks.milestone` on the whole project diff",
+     f"re-run `checks.milestone` on the whole project diff, plus `security-review` on it {SEC}"),
+    ("skills/sdlc-run/references/stages.md",
+     f"`cct:verifier` and `cct:ac-auditor` agents for job\n   stories and facts, `cct:security-review` {SEC}.",
+     "`cct:verifier` and `cct:ac-auditor` agents for job\n   stories and facts. `cct:security-review` runs only on the goal's last milestone, on the whole\n"
+     "   goal diff (`git diff origin/<defaultBranch>...milestone/<slug>-<last>`), and only when auth, money or\n"
+     "   consent is touched anywhere in it; in a project it waits for Stage 6p. Never on earlier milestones."),
+    ("skills/sdlc-run/references/stages.md",
+     "anything looks at the seams between them.",
+     f"anything looks at the seams between them. Run `cct:security-review` on the same diff {SEC};\n"
+     "   it is the project's only security review."),
+]
+# Agents run on the model their definition names. A general-purpose agent inherits the session's model (often
+# Opus), which burned a whole milestone's tokens on 2026-10-31; the chain has to say so where it dispatches.
+AGENTS_RULE = (
+    "Agents: every build, fix, test, capture, restack or records agent is `cct:builder` (Sonnet); review and checks use "
+    "their typed agents (`cct:code-reviewer`, `cct:verifier`, `cct:ac-auditor`, `cct:ux-reviewer`, `cct:validate-finding`). "
+    "Never launch general-purpose for this work: it inherits the session's model. Any other subagent gets `model: sonnet` "
+    "explicitly. The session's own model is only for the gate's visual judgement and for decisions. Dispatch builders "
+    "yourself, never through a closer agent that spawns its own."
+)
+PATCHES.append(("skills/sdlc-run/SKILL.md",
+                "Every step, input, output, skip and failure mode: `references/stages.md`.",
+                f"## Agents and models\n\n{AGENTS_RULE}\n\nEvery step, input, output, skip and failure mode: `references/stages.md`."))
+for goal in ("run", "milestone", "feature"):
+    PATCHES.append((f"skills/sdlc-run/templates/goal/{goal}.txt", "Stop after <TURNS> turns and report.",
+                    f"{AGENTS_RULE} Stop after <TURNS> turns and report."))
+for rel, old, new in PATCHES:
+    f = OUT / rel
+    t = f.read_text()
+    assert t.count(old) == 1, f"patch no longer matches {rel}: {old[:60]}"
+    f.write_text(t.replace(old, new))
+
 # Bare agent names that now resolve to omr-dev's code-reviewer point back at their own renamed agent
 for cmd, agent in (("review-pr", "pr-review-toolkit-code-reviewer"), ("feature-dev", "feature-dev-code-reviewer")):
     f = OUT / "commands" / f"{cmd}.md"
