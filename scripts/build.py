@@ -307,8 +307,6 @@ AGENTS_RULE = (
 PATCHES.append(("skills/sdlc-run/SKILL.md",
                 "Every step, input, output, skip and failure mode: `references/stages.md`.",
                 f"## Agents and models\n\n{AGENTS_RULE}\n\nEvery step, input, output, skip and failure mode: `references/stages.md`."))
-# Ship/Show/Ask is still asked on every adopt, but cct recommends and defaults to no: one owner.
-PATCHES.append(("skills/sdlc-run/scripts/adopt.py", "TIERS_DEFAULT = True", "TIERS_DEFAULT = False"))
 for goal in ("run", "milestone", "feature"):
     PATCHES.append((f"skills/sdlc-run/templates/goal/{goal}.txt", "Stop after <TURNS> turns and report.",
                     f"{AGENTS_RULE} Stop after <TURNS> turns and report."))
