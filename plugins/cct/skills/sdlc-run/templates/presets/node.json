@@ -24,7 +24,7 @@
   "blocked": [
     {
       "match": "(^|[[:space:];&|(])(pnpm|yarn)([[:space:]]+[^[:space:];&|]+)*[[:space:]]+(add|remove)([[:space:]]|$)|(^|[[:space:];&|(])npm([[:space:]]+[^[:space:];&|]+)*[[:space:]]+(i|install|uninstall)[[:space:]]+[^-[:space:]]",
-      "message": "dependency changes are Ask-tier: a human adds the package in a branch and commits package.json + the lockfile; the PR gets the ask label. Say which package and why, then stop.",
+      "message": "dependency changes are made by a human, who adds the package in a branch and commits package.json + the lockfile. Say which package and why, then stop.",
       "samples": [
         "pnpm add x",
         "yarn add y",
@@ -47,7 +47,7 @@
     },
     {
       "match": "(^|[[:space:];&|(])(drizzle-kit|prisma)([[:space:]]+[^[:space:];&|]+)*[[:space:]]+(push|db[[:space:]]+push)",
-      "message": "schema changes are migrations in a PR (ask tier), never pushed to a database from a shell.",
+      "message": "schema changes are migrations in a PR, never pushed to a database from a shell.",
       "samples": [
         "pnpm drizzle-kit push",
         "prisma db push",
@@ -57,14 +57,12 @@
   ],
   "toolsCommand": "pnpm sdlc:tools",
   "tests": "vitest",
-  "codeowners": [],
   "claude": true,
   "claudeAllow": [
     "Bash(pnpm *)",
     "Bash(git:*)",
     "Bash(gh pr:*)"
   ],
-  "showChannel": "",
   "keep": [],
   "milestones": {
     "branchPrefix": "milestone/",

@@ -112,7 +112,7 @@ for d in "$root/$changes"/*/; do
   st=$(state_of "$d")
   pr="none"
   if command -v gh >/dev/null 2>&1; then
-    pr=$(gh pr list --search "$id in:body" --state open --json number,labels --jq '.[0] | "#\(.number) \((.labels|map(.name)|map(select(.=="ask" or .=="show" or .=="ship"))|.[0]) // "unlabelled")"' 2>/dev/null || true)
+    pr=$(gh pr list --search "$id in:body" --state open --json number --jq '.[0] // empty | "#\(.number)"' 2>/dev/null || true)
     [ -n "$pr" ] || pr="none"
   fi
   printf '%s\tlinear=%s\tstate=%s\tpr=%s\n' "$id" "${linear:-none}" "$st" "$pr"
