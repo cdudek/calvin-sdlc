@@ -318,9 +318,11 @@ synthetic fixture rules; the isolation rules below still apply to each worker.
 
 A flaky test is a defect with an owner, not weather.
 
-- **Retries: at most 1 on CI, and flakes fail the run.** Set `failOnFlakyTests: !!process.env.CI`
-  (Playwright 1.52+): a test that passes only on retry then fails CI instead of hiding in a
-  green run, and the retry still records a trace.
+- **Retries: at most 1 on CI, and a pass on retry is reported.** On a feature PR it goes in
+  the job summary and onto the committed flaky list (`suite-speed-and-reliability.md`
+  section G) without blocking the merge; on a full run (`FULL=true`, the CI blueprint's A5) a flake fails
+  the run (Playwright 1.52+: `failOnFlakyTests: process.env.FULL === 'true'`). The retry
+  still records a trace. Commands for other stacks: section K of the same file.
 - **Fix first, with `cct:flaky-test-fix`:** reproduce with `--repeat-each=20` (`waiting.md` section 11),
   find the cause, fix it, prove it with the same repeat.
 - **Quarantine is a human decision, never the healer's.** When a flaky T1 test blocks
@@ -341,7 +343,7 @@ test jobs from 57% to under 5% with automatic detection and suppression
 
 | Lane | What | When | Blocks |
 |---|---|---|---|
-| PR gate | T1 specs against the production build (`next build`, then `next start` or the standalone server) and a freshly migrated, seeded database | every PR | yes |
+| PR gate | T1 specs against the production build (`next build`, then `next start` or the standalone server) and a freshly migrated, seeded database, sharded over N jobs | every PR into the default branch or `project/*`; a feature PR into `milestone/*` runs only the specs it changed; a docs-only PR runs none (`sdlc-run` `references/ci-blueprint.md`) | yes |
 | Milestone gate | T1 and T2; repeat scope per `suite-speed-and-reliability.md` section G | before a milestone PR merges | yes |
 | Nightly | T1, T2, quarantine, second-locale smoke, integration evidence against sandboxes | nightly | no, but it pages the owner |
 | Preview | T1 read-only journeys against the deployed preview | after each preview deploy | advisory |

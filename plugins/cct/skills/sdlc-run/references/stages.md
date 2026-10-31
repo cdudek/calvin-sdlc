@@ -253,7 +253,9 @@ a change small enough for one milestone has one.
      which sees the same screens. Never post its comments. Skipped with a printed line when
      `sdlc.json` `ux` is `off`, the size is `none`, or the PR changes no interface file.
      Supplied marks and reference images still require comparison, even when the UX skill is skipped.
-  8. Arm auto-merge. PR CI runs the full E2E suite; fix until mergeable. This PR is
+  8. Arm auto-merge and start the next independent feature at once (Records, gates and
+     waiting, below). PR CI runs lint, types, unit tests and the specs this PR changed; the
+     full E2E suite runs on the milestone head (`ci-blueprint.md`, A5). This PR is
      **interior** — its base is `milestone/<slug>`, not the default branch — so neither the
      Claude review nor Ship/Show/Ask runs on it, and no human is asked to approve it. Both
      workflows skip themselves on the base ref (`references/tiers.md`). The code is reviewed
@@ -261,6 +263,33 @@ a change small enough for one milestone has one.
   9. On merge: the feature's row in `milestone.md` → `merged`; the next feature starts.
 - **Failure modes:** an edit outside `/goal` (refused), a protected-path edit (refused), a test
   edited to pass.
+
+## Records, gates and waiting
+
+Measured on one repo in one day: 13 of 22 PRs were docs-only records, and the agent sat idle
+while a dependency PR's CI ran. Four rules, for every stack.
+
+- **Records ride along.** Plans, handovers, gate lines (`verify/report.md`), `validation.md`,
+  `findings.md`, `questions.md` and `milestone.md` rows are committed to the branch they belong
+  to (the milestone branch; the project branch for a record that spans milestones) and ship in
+  its PR. No `records/*` PR, no `docs/*` PR, no PR whose only content is a record. The archive
+  move (Stage 7) is the last commit of the PR into the default branch.
+- **A merge gate only for a real code dependency.** Waiting for another PR to merge is justified
+  only when this row's code imports, calls or edits something that exists only in that open PR.
+  Tests, docs, records, config and unrelated rows are not dependencies: build on. When the code
+  does depend, merge the PR's branch into the milestone branch locally
+  (`git merge origin/<dependency-branch>`) and build on top; that PR merges when its CI is green.
+  When it has merged, `git rebase --onto origin/<parent> origin/<dependency-branch>` drops its
+  commits from the milestone branch.
+- **Never idle on CI.** After a push: arm auto-merge (`gh pr merge <n> --squash --auto`), watch
+  the PR in the background (`gh pr checks <n> --watch` as a background command, or `Monitor`),
+  and start the next independent row at once. The supervisor watches, not the builder; a
+  builder returns when it has pushed. A red check interrupts: dispatch a builder to the PR's
+  branch, then go back. Independent rows build in parallel builders, at most 4 (Wall clock).
+- **Agents run what they touched.** A builder runs only the tests or specs its change touched
+  (the command per stack: `../../e2e-test-run/references/suite-speed-and-reliability.md`
+  section K, column "Touched tests"). The full suite runs once per milestone, and in CI only
+  on the PRs `ci-blueprint.md` A5 names.
 
 ## Wall clock: one worktree per builder
 
@@ -392,10 +421,12 @@ into `project/<slug>`.
 
 ## Stage 7 — Outcome and archive
 
-1. When the change reaches the default branch: `git mv changes/<id> changes/archive/<year>/<year-month>/<id>`,
-   set `archived_at`, commit `changes(<id>): archived`, comment the merge SHA in the tracker,
-   `ExitWorktree keep`, then `git worktree remove .worktrees/<slug>` (a worktree entered by path
+1. Before the PR into the default branch merges, its last commit does
+   `git mv changes/<id> changes/archive/<year>/<year-month>/<id>`, sets `archived_at` and reads
+   `changes(<id>): archived`: no separate PR after the merge. After it merges: comment the merge
+   SHA in the tracker, `ExitWorktree keep`, then `git worktree remove .worktrees/<slug>` (a worktree entered by path
 is never removed by `ExitWorktree`). Move the tracker forward only, never backwards.
 2. After release: read the success measure from PostHog (`omr-ai-os:posthog-*` or the insight
-   named in `intent.md`) and write it under `## Outcome` in `milestone.md`.
+   named in `intent.md`) and write it in the tracker at once and under `## Outcome` in the
+   archived `milestone.md`, committed with the next change's PR, never a PR of its own.
 3. A miss starts the next change at 1.3, with the measurement as its first ask.

@@ -22,6 +22,8 @@ How Calvin works with coding agents. Each rule came from a real mistake; the rea
 - Before handing over a PR, read `gh pr view <n> --json mergeStateStatus,autoMergeRequest`. `BEHIND` → `gh pr update-branch <n> --rebase` and wait for CI; `BLOCKED` → name the missing check or review; `CLEAN` → hand it over. Green CI is not the same as mergeable.
 - Arm auto-merge (`gh pr merge <n> --squash --auto`) on anything that can merge itself, but ask before arming it on a goal's milestone PR.
 - Stack branches only for a real code dependency, and say "Stacked on #A, merge after it" in the body.
+- Records (plans, handovers, gate lines, validation, findings) are committed to the milestone or project branch they belong to and ship in its PR. No `records/*` PRs.
+- Wait on another PR only when the code depends on it; otherwise build on, or merge that PR's branch into the milestone branch locally. Never idle on CI: arm auto-merge, watch in the background, start the next independent row (at most 4 builders).
 - One change, one PR. Always give the full PR URL, never a bare number.
 - Format, lint and typecheck before every commit. CI rejects anything that skips them.
 
@@ -33,7 +35,8 @@ How Calvin works with coding agents. Each rule came from a real mistake; the rea
 
 ## Tests
 
-- The full E2E suite runs in CI and locally only at the end of a milestone, in the background. Never per commit.
+- The full E2E suite runs in CI and locally only at the end of a milestone, in the background. Never per commit. Agents run only the tests they touched (command per stack: `skills/e2e-test-run/references/suite-speed-and-reliability.md` section K).
+- CI skips build, tests and previews for docs-only PRs behind one required `check` status, runs E2E against the built artifact, sharded, with one retry, and runs the full E2E suite only on PRs into the default branch or `project/*` and on milestone heads (`skills/sdlc-run/references/ci-blueprint.md`). Measured 2026-10-31: 22 of 39 runs red, 13 of 22 PRs docs-only.
 - Never mark something done without proof: tests run, output read, behaviour seen in the real app.
 
 ## Plans, handovers, sharing

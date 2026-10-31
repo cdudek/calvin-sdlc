@@ -13,7 +13,7 @@ description: >-
 allowed-tools: "Read Grep Glob Edit Write Agent Skill AskUserQuestion Bash(bash */sdlc-run/scripts/*) Bash(python3 */sdlc-run/scripts/*) Bash(python3 scripts/verify_gate.py *) Bash(python3 scripts/sdlc_status.py *) Bash(git *) Bash(gh *) Bash(bd *) Bash(plannotator *) Bash(make *) Bash(pnpm *) Bash(uv *) Bash(npx *) EnterWorktree mcp__claude_ai_Linear__* mcp__linear__*"
 user_invocable: true
 metadata:
-  version: 3.0.0
+  version: 3.1.0
   author: calvindudek
 effort: high
 ---
@@ -178,6 +178,16 @@ even for a PR opened by hand. Reviewing every interior PR re-reads the same diff
 times on its way up and costs ~$1 each time; the integration PR is where the whole change is
 first seen as one thing, and that is where it is read.
 
+### Records, gates and waiting
+
+No PR carries only a record: plans, handovers, gate lines and findings ride in their
+milestone's PR. A merge gate exists only for a real code dependency; otherwise build on, or
+merge the dependency's branch locally. After a push, arm auto-merge, watch in the background and
+start the next independent row (at most 4 builders). Agents run only the tests they touched.
+CI skips build, tests and previews for docs-only PRs and runs the full E2E suite only on the
+PRs into the default branch or `project/*` and on milestone heads. Rules and per-stack
+commands: `references/stages.md` "Records, gates and waiting", `references/ci-blueprint.md`.
+
 ## Never
 
 - Build outside `/goal`. `chain-gate.sh` refuses the edit; never work around it.
@@ -187,6 +197,9 @@ first seen as one thing, and that is where it is read.
 - Edit a test to make verify pass, or while `testLocked` without `testEdit`.
 - Start a second fix round at the milestone. What is left goes to the next milestone.
 - Put a local path in any tracker (`scripts/linear-safe.py`); keep a plan in `.claude/plans/`.
+- Open a PR that holds only records, or wait on a PR your code does not depend on.
+- Run the whole suite to check one change: the touched tests only, the full suite once per
+  milestone (`../e2e-test-run/references/suite-speed-and-reliability.md` section K).
 - Name the change's issue key in a feature branch or feature PR: its merge closes the change
   early. Feature PRs carry their sub-issue key; only the milestone PR says `Closes <KEY>`.
 
@@ -207,6 +220,7 @@ first seen as one thing, and that is where it is read.
 - `references/chain.md` — folder layout, decisions, frontmatter, `sdlc.json` keys, history.
 - `references/requirements-grammar.md` — EARS and Gherkin grammar for `facts.md`.
 - `references/adopt.md` — what `adopt` writes, what stays manual, migrations.
+- `references/ci-blueprint.md` — docs-only skip, one `check` status, E2E scope, protected interior branches.
 - `references/tiers.md` — Ship / Show / Ask by path.
 - `references/playbook.md` — playbook mapping and metrics.
 - `references/layout-research.md` — why `changes/` plus archive.
