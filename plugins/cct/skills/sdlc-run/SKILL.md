@@ -10,10 +10,10 @@ description: >-
   feature, bug fix, refactor, docs change, chore, hotfix, milestone or project, asks "how do we
   do X here", or says "run sdlc", "adopt sdlc", "sdlc status". Subcommands: "adopt" installs the
   chain, "status" lists open changes and gates.
-allowed-tools: "Read Grep Glob Edit Write Agent Skill AskUserQuestion Bash(bash */sdlc-run/scripts/*) Bash(python3 */sdlc-run/scripts/*) Bash(python3 scripts/verify_gate.py *) Bash(python3 scripts/sdlc_status.py *) Bash(git *) Bash(gh *) Bash(bd *) Bash(plannotator *) Bash(make *) Bash(pnpm *) Bash(uv *) Bash(npx *) EnterWorktree mcp__claude_ai_Linear__* mcp__linear__*"
+allowed-tools: "Read Grep Glob Edit Write Agent Skill AskUserQuestion Bash(bash */sdlc-run/scripts/*) Bash(python3 */sdlc-run/scripts/*) Bash(python3 */sdlc-run/templates/scripts/sdlc_version.py*) Bash(python3 scripts/sdlc_version.py*) Bash(python3 scripts/verify_gate.py *) Bash(python3 scripts/sdlc_status.py *) Bash(git *) Bash(gh *) Bash(bd *) Bash(plannotator *) Bash(make *) Bash(pnpm *) Bash(uv *) Bash(npx *) EnterWorktree mcp__claude_ai_Linear__* mcp__linear__*"
 user_invocable: true
 metadata:
-  version: 3.2.0
+  version: 3.3.1
   author: calvindudek
 effort: high
 ---
@@ -57,9 +57,15 @@ defines nothing, the kit default applies and every report names the defaults it 
 
 The user input is: $ARGUMENTS
 
+**First, every time, in an adopted repo:** `python3 ${CLAUDE_SKILL_DIR}/templates/scripts/sdlc_version.py`
+compares `sdlc.json` `sdlcVersion` with this skill's version. It prints one line when the repo
+has no stamp or an older one (`This repo runs sdlc-run <old or none>; the kit is <new>. Run
+\`adopt --upgrade\` (changes: …)`) or a newer one (update the plugin). Relay the line, then
+carry on: it never blocks. `references/changelog.md` lists what each version changed.
+
 | Input | Do |
 |---|---|
-| `adopt [--dry-run] [--preset node\|python]` | Install or refresh the chain → `references/adopt.md`. First ask "Use Ship/Show/Ask?" (that file, "Ask first"), on the first adopt and on every upgrade. |
+| `adopt [--dry-run] [--upgrade [--apply --replace FILE]] [--preset node\|python]` | Install or refresh the chain → `references/adopt.md`. `--upgrade` never overwrites or moves anything: it adds missing `sdlc.json` keys, stamps `sdlcVersion`, lists every differing file as `review diff` and the changelog's manual migrations; `--upgrade --apply --replace <file>` replaces one kit-owned file after showing its diff. First ask "Use Ship/Show/Ask?" (that file, "Ask first"), on the first adopt and on every upgrade. |
 | `status [<id>]` · `status --shipped [n]` | `bash ${CLAUDE_SKILL_DIR}/scripts/status.sh …`, then `python3 scripts/sdlc_status.py map` for every milestone and this one's features. |
 | `<title>` or a ticket id | Start at Stage 1.0. |
 | `tracker` | Choose or set up the tracker → `references/trackers.md`. |
@@ -187,7 +193,7 @@ separate PRs only for other repositories and for changes the engineer sends to t
 branch first. A merge gate exists only for a real code dependency; otherwise build on, or
 merge the dependency's branch locally. After a push, arm auto-merge, watch in the background and
 start the next independent row (at most 4 builders). Agents run only the tests they touched.
-CI runs each step (lint, unit, build, e2e, deploy) only when a changed path needs it (`sdlc.json` `ciPaths`), nothing for docs, and runs the full E2E suite only on the
+CI runs each step (lint, unit, build, e2e, deploy) only when a changed code or config path needs it (`sdlc.json` `ciPaths`), nothing for a file that is neither, and runs the full E2E suite only on the
 PRs into the default branch or `project/*` and on milestone heads. Rules and per-stack
 commands: `references/stages.md` "Records, gates and waiting", `references/ci-blueprint.md`.
 
@@ -224,7 +230,8 @@ commands: `references/stages.md` "Records, gates and waiting", `references/ci-bl
 - `references/chain.md` — folder layout, decisions, frontmatter, `sdlc.json` keys, history.
 - `references/requirements-grammar.md` — EARS and Gherkin grammar for `facts.md`.
 - `references/adopt.md` — what `adopt` writes, what stays manual, migrations.
-- `references/ci-blueprint.md` — per-step gating by changed paths, docs run nothing, one `check` status, E2E scope, protected interior branches.
+- `references/ci-blueprint.md` — how to set CI up in GitHub Actions (`templates/ci/github-actions.yml`), per-step gating by changed file type and path, nothing runs for a file that is neither code nor config, one `check` status, E2E scope, protected interior branches.
+- `references/changelog.md` — what each sdlc-run version changed and what a repo must do (`adopt --upgrade` reads it).
 - `references/tiers.md` — Ship / Show / Ask by path.
 - `references/playbook.md` — playbook mapping and metrics.
 - `references/layout-research.md` — why `changes/` plus archive.

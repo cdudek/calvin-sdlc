@@ -101,59 +101,181 @@ Measured on one real repo, one day: 39 CI runs, 22 failed, about 25 minutes each
 - **C2, never idle.** After a push: arm auto-merge (`gh pr merge <n> --squash --auto`), watch in the background, start the next independent row. A red check interrupts; otherwise keep going.
 - **C3, touched tests only.** A builder runs only the tests its change touched. The full suite runs once per milestone, and in CI only where A5 says.
 
+## GitHub Actions setup
+
+The CI is one workflow file, `plugins/cct/skills/sdlc-run/templates/ci/github-actions.yml`, for six stacks (`node`, `python`, `rust`, `ruby-rails`, `kotlin`, `scala`), with five setup steps:
+
+1. **Copy the workflow.** `cp templates/ci/github-actions.yml .github/workflows/ci.yml`. `adopt` does it for a repo with no CI; a repo with its own CI copies the `changes` and `check` jobs and gates its jobs on their flags.
+2. **Set `STACK`** at the top (and the version line for it) and the default branch in `on.push.branches`. Delete the `services:` block of `unit` and `e2e` if the repo has no database.
+3. **Check `sdlc.json`.** `ciPaths` says which changed files run which step; `ciCommands` says what each job runs: `install`, `lint`, `unit`, `build`, `e2e` (with `{shard}` and `{total}`) and `e2eTouched` (with `{files}`). Defaults per stack ship in `templates/ci-paths.json` and `templates/ci-commands.json`; `adopt` fills them.
+4. **Apply the A6 ruleset** (below), so `project/*` (and `milestone/*` with `feature-prs`) need the same status as the default branch.
+5. **Make `check` the only required status.** Every other job hangs off it, and it reports even when every job was skipped.
+
+If no code or config was touched, nothing runs. The only cost of such a PR is the `changes` job (about 10 seconds) and `check`: a required status that never reports leaves the PR unmergeable, so the workflow always starts.
+
+### What runs for which file
+
+| Changed file | Type | Steps |
+|---|---|---|
+| `README.md`, `docs/*`, `changes/*`, `.claude/*`, `*.txt`, an image | not code, not config | nothing |
+| `src/*`, `app/*`, `*.ts`, `*.py`, `*.rs`, `*.rb` | code | lint, unit, build, deploy; e2e as touched specs, or the whole suite where the safety net applies |
+| `test/*`, `*.test.*` | code (tests) | lint, unit |
+| `e2e/*.spec.*` | code (a spec) | lint, e2e on that spec only |
+| `*.css`, `*.scss` | code (styles) | lint, e2e, deploy; not unit |
+| `drizzle/*`, `db/migrate/*`, `*.sql` | code (migrations) | unit, e2e, deploy |
+| `package.json`, `tsconfig*.json`, `Dockerfile*`, `*.tf` | config | every step |
+| `pnpm-lock.yaml`, `.github/workflows/*`, `sdlc.json` | config in `all` | every step |
+
+### Worked example
+
+The TypeScript defaults. Four PRs from a feature branch into `milestone/x`, then the same code into the default branch.
+
+| PR changes | lint | unit | build | e2e | deploy | Why |
+|---|---|---|---|---|---|---|
+| `README.md`, `docs/guide.md` | skips | skips | skips | skips | skips | Both match `ciPaths.docs`. Only `changes` and `check` run. |
+| `docs/img/diagram.png`, `README.md` | skips | skips | skips | skips | skips | An image outside the code folders is neither code nor config. Nothing runs. |
+| `src/lib/price.ts` | runs | runs | runs | skips | runs | Code: every step's include matches. E2E skips because no spec changed; the whole suite runs on the PR into the default branch. |
+| `e2e/login.spec.ts` | runs | skips | skips | runs (that spec) | skips | `e2e/*` is excluded from unit, build and deploy; `ciPaths.specs` names it a spec, so one leg runs just that file. |
+| `src/lib/price.ts`, PR into the default branch | runs | runs | runs | runs (4 shards) | runs | The safety net: code in a PR into the default branch or `project/*`, or from `milestone/*`, runs every step and the whole suite. |
+| any push to the default branch | runs | runs | runs | runs (4 shards) | runs | The same net, after the merge. |
+
+The safety net costs one thing: a code file missing from `code` or `config`, in a PR that changes only that file, runs nothing until the push after the merge. Keep both lists complete. `scripts/test_ci_changes.sh` runs the template's real `changes` script against these cases.
+
+### The `changes` job
+
+An excerpt of `templates/ci/github-actions.yml` (the file has the rest: the other jobs, the stack setup for six stacks, the sharded `e2e` job with its database service, the `deploy` hook):
+
+```yaml
+  changes:
+    name: Changed paths
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      lint: ${{ steps.f.outputs.lint }}
+      unit: ${{ steps.f.outputs.unit }}
+      build: ${{ steps.f.outputs.build }}
+      deploy: ${{ steps.f.outputs.deploy }}
+      full: ${{ steps.f.outputs.full }}
+      matrix: ${{ steps.f.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: sdlc.json # only the path lists are needed
+          sparse-checkout-cone-mode: false
+      - id: f
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          BASE: ${{ github.base_ref }}
+          HEAD: ${{ github.head_ref }}
+          DEFAULT: ${{ github.event.repository.default_branch }}
+        run: |
+          # >>> changes-script (scripts/test_ci_changes.sh runs exactly these lines)
+          set -eu
+          set -f # keep the globs literal
+          # …
+          list() { jq -r "(.ciPaths$1 // []) | join(\" \")" sdlc.json; }
+          hit() { for g in $2; do case "$1" in $g) return 0 ;; esac; done; return 1; }
+          # …
+            while IFS= read -r f; do
+              [ -n "$f" ] || continue
+              hit "$f" "$IGNORE" && continue
+              if hit "$f" "$ALL"; then everything; touched=true; continue; fi
+              hit "$f" "$CODE" || continue # neither code nor config: runs nothing
+              touched=true
+              # …
+              for s in $STEPS; do
+                eval "inc=\"\$inc_$s\" exc=\"\$exc_$s\""
+                # on a step when it matches the include and not the exclude
+                if hit "$f" "$inc"; then known=true; hit "$f" "$exc" || eval "$s=true"; fi
+              done
+              # code or config that no step's include knows is a path you forgot to list: run everything
+              $known || everything
+            # …
+            # safety net: where the full suite runs, any code or config change runs every step
+            if [ "$touched" = true ] && [ "$full" = true ]; then everything; fi
+          # …
+
+  lint:
+    name: Lint and types
+    needs: changes
+    if: needs.changes.outputs.lint == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      # checkout and the stack setup steps …
+      - name: Lint (ciCommands.lint)
+        run: |
+          cmd=$(jq -r '.ciCommands.lint // empty' sdlc.json)
+          if [ -z "$cmd" ]; then echo "::error::sdlc.json has no ciCommands.lint; set it (to true if this repo has no such step)"; exit 1; fi
+          echo "+ $cmd"; bash -eo pipefail -c "$cmd"
+
+  # The one required status. It always runs and always reports, so a PR that needed no job is still mergeable.
+  check:
+    name: check
+    if: always()
+    needs: [changes, lint, unit, build, e2e, deploy]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          # skipped is fine: a flag said the step was not needed. failure or cancelled is not.
+          case " $RESULTS " in *" failure "*|*" cancelled "*) echo "::error::a job failed: $RESULTS"; exit 1 ;; esac
+          echo "all jobs passed or were skipped on purpose: $RESULTS"
+```
+
 ## The CI blueprint, A1 to A6
 
-`adopt` compares your CI with the blueprint and recommends each gap. A repo with no CI gets it written. Commands per stack are in `plugins/cct/skills/e2e-test-run/references/suite-speed-and-reliability.md`, section K.
+Commands per stack are in `plugins/cct/skills/e2e-test-run/references/suite-speed-and-reliability.md`, section K.
 
 | # | Rule |
 |---|---|
-| A1 | Each step (lint, unit, build, e2e, deploy) runs only when a changed path needs it. A docs change runs nothing and the one required status still reports success. |
+| A1 | Each step (lint, unit, build, e2e, deploy) runs only when a changed code or config path needs it. A change that is neither runs nothing and the one required status still reports success. |
 | A2 | E2E runs against the built artifact, never a dev server that compiles on demand. |
 | A3 | The slow suite is sharded over N jobs, each with its own database service. |
 | A4 | One retry. A pass on retry is reported; it fails the run only on a full run. |
-| A5 | Within the e2e step: the full suite runs only on PRs into the default branch or `project/*`, and on milestone heads. Other PRs run the touched specs. |
+| A5 | Within the e2e step: the full suite runs only on PRs into the default branch or `project/*`, on milestone heads and on pushes to the default branch. Other PRs run the touched specs. |
 | A6 | `project/*` carries the same required `check`, so auto-merge waits for green (`milestone/*` too with `feature-prs`). |
 
 ### `ciPaths`: which paths run which step
 
-Each repo lists its own paths in `sdlc.json` under `ciPaths`. One `changes` job reads them and sets a flag per step. A job runs only on its flag, and one job named `check` is the only required status, so a PR that skips everything still merges.
+Each repo lists its own paths in `sdlc.json` under `ciPaths`. One `changes` job reads them and sets a flag per step. A job runs only on its flag, and one job named `check` is the only required status.
 
 ```mermaid
 flowchart LR
   A["Changed files in the PR"] --> C["changes job:<br/>reads sdlc.json ciPaths"]
-  C --> F["one flag per step:<br/>lint, unit, build, e2e, deploy"]
+  C --> N{"code or config?"}
+  N -->|neither| X["nothing runs"]
+  N -->|yes| F["one flag per step:<br/>lint, unit, build, e2e, deploy"]
   F -->|flag true| R["job runs"]
   F -->|flag false| S["job skips"]
   R --> K["check: the one required status"]
   S --> K
+  X --> K
 ```
 
 ```json
 "ciPaths": {
   "docs": ["changes/*", "docs/*", "*.md"],
   "all": [".github/workflows/*", "sdlc.json", "pnpm-lock.yaml"],
+  "code": ["src/*", "*.ts", "*.css"],
+  "config": ["package.json", "Dockerfile*"],
+  "specs": ["e2e/*.spec.*"],
   "unit": { "include": ["src/*", "test/*", "*.test.*"], "exclude": ["e2e/*", "*.css"] }
 }
 ```
 
 (The real block has an `include` and `exclude` list for each of `lint`, `unit`, `build`, `e2e` and `deploy`.)
 
-- A step runs for a file that matches its `include` and not its `exclude`. Globs are shell globs; `*` also crosses `/`.
-- `docs` triggers nothing. `all` (lockfiles, CI workflows, `sdlc.json`) triggers every step.
-- A file that matches no list triggers every step, so a forgotten path costs minutes, never a missed check.
-- A YAML counts as docs only if nothing reads it. Workflows, app config, k8s and terraform YAML are code. Migrations are never excluded.
+- A file in `docs` (the optional "never runs anything" list) or in neither `code` nor `config` triggers nothing. `all` (lockfiles, CI workflows, `sdlc.json`) triggers every step.
+- A code or config file runs the steps whose `include` matches it and whose `exclude` does not. Globs are shell globs; `*` also crosses `/`.
+- A code or config file that no step lists triggers every step, so a forgotten path costs minutes, never a missed check.
+- A YAML counts as ignorable only if nothing reads it. Workflows, app config, k8s and terraform YAML are config. Migrations are never excluded.
 - `ciPaths` sits outside `checks`, so editing it does not need an unlock.
-
-Example, for the TypeScript defaults:
-
-| Changed file | Steps that run |
-|---|---|
-| `docs/guide.md` | nothing |
-| `src/cart.ts` | lint, unit, build, e2e, deploy |
-| `src/cart.test.ts` | lint, unit |
-| `e2e/pay.spec.ts` | lint, e2e (touched specs) |
-| `.github/workflows/ci.yml`, a lockfile, `sdlc.json` | everything |
-| `tools/x.sh`, a file no list knows | everything |
 
 ## Commands per stack
 
@@ -166,7 +288,7 @@ Example, for the TypeScript defaults:
 | Kotlin | `./gradlew :module:test --tests 'pkg.FooTest'` | `installDist` or `bootJar`, run the jar | `maxParallelForks`; module matrix across jobs | `org.gradle.test-retry`, `maxRetries = 1` |
 | Scala | `sbt "testOnly pkg.FooSpec"` | `sbt stage` or `assembly` | forked JVMs via `Test / testGrouping`; `testOnly` lists across jobs | ScalaTest `Retries` on a listed suite |
 
-`ciPaths` defaults ship for all six stacks. The `adopt` presets exist for `node` and `python`; other stacks take the nearest preset and replace `checks.*` with the row above.
+`ciPaths` and `ciCommands` defaults ship for all six stacks. The `adopt` presets exist for `node` and `python`; other stacks take the nearest preset, set `STACK` by hand and replace `checks.*` with the row above.
 
 ## How to adopt
 
@@ -178,19 +300,20 @@ Run `adopt` once per repo, from the repo root, on a branch:
 
 It first asks whether to use Ship/Show/Ask merge tiers (a code owner approves risky PRs; the right answer for a one-owner repo is no). Then it installs:
 
-- `sdlc.json`, from a preset, including the stack's default `ciPaths` (written once, never overwritten; edit the folder names to your repo's own).
+- `sdlc.json`, from a preset, including the stack's default `ciPaths` and `ciCommands` (written once, never overwritten; edit the folder names to your repo's own), and the `sdlcVersion` stamp.
 - Hooks in `.claude/hooks/` that refuse edits outside `/goal` and to locked files, and `scripts/verify_gate.py`.
 - The review and tier workflows, `docs/sdlc.md`, issue and PR templates, and a section for `CLAUDE.md`.
 
-`adopt` never edits your own `ci.yml`. It compares it with the blueprint and recommends the gaps. Re-run it whenever the plugin updates, because the hooks and workflows are copies that do not update themselves.
+A repo with no CI gets `.github/workflows/ci.yml` from the template. `adopt` never edits your own CI: it prints the gaps and "copy the `changes` and `check` jobs from `templates/ci/github-actions.yml`". Re-run it whenever the plugin updates, because the hooks and workflows are copies that do not update themselves.
 
-Day to day:
+## Staying current
 
-```bash
-/cct:sdlc-run add dark mode
-/cct:sdlc-run
-/cct:sdlc-run status
-/cct:sdlc-run tracker
+`adopt` writes `"sdlcVersion": "3.3.1"` into `sdlc.json`. Every time the skill runs in the repo, `status` and the verify gate compare the stamp with the installed plugin and print one line when it is missing or older, for example:
+
+```text
+This repo runs sdlc-run 3.2.0; the kit is 3.3.1. Run `adopt --upgrade` (changes: 3.3.1: adopt --upgrade never overwrites or moves anything; 3.3.0: the CI workflow ships as a template, ciPaths by file type, versioned repos).
 ```
 
-Start a change, continue the one on the current branch, list open changes and their gates, and choose the tracker (Linear, GitHub Projects, Beads or none). The plan's content always lives in the repo; the tracker only holds status and links.
+A repo newer than the plugin is told to update the plugin. The verify gate prints it as a `WARN` line and never blocks.
+
+`/cct:sdlc-run adopt --upgrade` is the safe path. It adds the keys a newer plugin introduced with the stack's defaults, never changes a value, stamps the new version and writes nothing else: no file overwritten, no folder moved. Each file that differs from the plugin's copy (a hook, `scripts/verify_gate.py`, `docs/sdlc.md`, the guardrail test) is listed as `review diff`, together with the manual migrations of `references/changelog.md` since your stamp. `adopt --upgrade --replace <file>` shows one file's diff; `adopt --upgrade --apply --replace <file>` replaces that file. A plain `adopt` refreshes every copy at once. `--dry-run` writes nothing.

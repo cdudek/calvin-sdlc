@@ -62,7 +62,9 @@ none.
 | `delivery` | `one-go` (default) or `feature-prs` |
 | `goal` | turn caps: `runTurns` for the one-go goal, `featureTurns` and `milestoneTurns` for feature PRs |
 | `languages`, `responsiveTier`, `ux` | what the product ships, the device matrix tier, UX on or off |
-| `ciPaths` | which changed files run which CI step (lint, unit, build, e2e, deploy); `docs` runs nothing, `all` runs everything, a file in no list runs everything |
+| `ciPaths` | which changed files run which CI step (lint, unit, build, e2e, deploy): a file in `code` or `config` runs the steps whose include matches it, `all` runs everything, a file in neither `code` nor `config` (or in `docs`) runs nothing; `specs` names the E2E spec files |
+| `ciCommands` | what each job of `.github/workflows/ci.yml` runs: `install`, `lint`, `unit`, `build`, `e2e` (`{shard}`, `{total}`), `e2eTouched` (`{files}`), optional `deploy` |
+| `sdlcVersion` | the sdlc-run version the repo was last adopted or upgraded with; the skill warns when the kit is newer (`adopt --upgrade`) |
 | `protected` | paths refused after approval |
 | `verify`, `verifyStop` | full command before PR; fast Stop hook command (skipped inside a `/goal` and when nothing changed since its last pass) |
 | `planGate` | `owner` or `self`; self is barred for data safety, irreversible writes, security or money |
