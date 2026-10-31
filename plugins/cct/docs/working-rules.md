@@ -23,6 +23,7 @@ How Calvin works with coding agents. Each rule came from a real mistake; the rea
 - Arm auto-merge (`gh pr merge <n> --squash --auto`) on anything that can merge itself, but ask before arming it on a goal's milestone PR.
 - Stack branches only for a real code dependency, and say "Stacked on #A, merge after it" in the body.
 - Records (plans, handovers, gate lines, validation, findings) are committed to the milestone or project branch they belong to and ship in its PR. No `records/*` PRs.
+- While a milestone is open, everything that belongs to it (a fix found in the build, a test or flaky-spec repair, a CI timeout tweak its tests need, records) is a commit on `milestone/<slug>`, never its own PR. The milestone PR is the only PR of the milestone; separate PRs only for other repositories and for changes the owner explicitly sends to `main` first.
 - Wait on another PR only when the code depends on it; otherwise build on, or merge that PR's branch into the milestone branch locally. Never idle on CI: arm auto-merge, watch in the background, start the next independent row (at most 4 builders).
 - One change, one PR. Always give the full PR URL, never a bare number.
 - Format, lint and typecheck before every commit. CI rejects anything that skips them.

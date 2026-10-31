@@ -227,7 +227,7 @@ a change small enough for one milestone has one.
      slot, in the foreground (see Wall clock below); `flaky-test-fix` for an inconsistent test.
   5. `python3 scripts/verify_gate.py feature <id>`, once per feature at the end, never after a
      task group; between edits run only the test files the change touched, since the gate is
-     the only full check. On `FAIL`, fix and rerun until `VERIFY PASS`: passed checks on an
+     the only full check. On `FAIL`, fix (a commit) and rerun until `VERIFY PASS`: passed checks on an
      unchanged tree are cached, and the third failed run blocks with `reason=attempts`. On `BLOCKED`: one
      `AskUserQuestion` naming the reason in plain words, two or three ways forward, your pick
      first as `(Recommended)` with why.
@@ -269,11 +269,15 @@ a change small enough for one milestone has one.
 Measured on one repo in one day: 13 of 22 PRs were docs-only records, and the agent sat idle
 while a dependency PR's CI ran. Four rules, for every stack.
 
-- **Records ride along.** Plans, handovers, gate lines (`verify/report.md`), `validation.md`,
-  `findings.md`, `questions.md` and `milestone.md` rows are committed to the branch they belong
-  to (the milestone branch; the project branch for a record that spans milestones) and ship in
-  its PR. No `records/*` PR, no `docs/*` PR, no PR whose only content is a record. The archive
-  move (Stage 7) is the last commit of the PR into the default branch.
+- **Records and fixes ride along: one milestone, one PR.** While a milestone is open,
+  everything that belongs to it is a commit on `milestone/<slug>` (`project/<slug>` for a record
+  that spans milestones), pushed, and ships in the milestone PR: a fix found during the build,
+  a test or flaky-spec repair, a CI timeout tweak its tests need, plans, handovers, gate lines
+  (`verify/report.md`), `validation.md`, `findings.md`, `questions.md`, `milestone.md` rows and
+  the integrated project check. No `records/*` PR, no `docs/*` PR, no `fix/*` PR, no PR whose
+  only content is a record, a fix or a test repair. Separate PRs exist only for other
+  repositories and for a change the engineer explicitly sends to the default branch first. The
+  archive move (Stage 7) is the last commit of the PR into the default branch.
 - **A merge gate only for a real code dependency.** Waiting for another PR to merge is justified
   only when this row's code imports, calls or edits something that exists only in that open PR.
   Tests, docs, records, config and unrelated rows are not dependencies: build on. When the code
@@ -380,8 +384,9 @@ person's own browser session. Never use Claude in Chrome or any tool driving tha
    appear in a `testGlobs` file or the check fails.
    Only the engineer's words in `accepted` can accept a non-fixed row; never infer acceptance.
 4. One fix round: `cct:review-fix-loop 1` (the `1` is `max_iterations`; always pass it) on the blocking items only, split into parallel
-   parts by the files they touch, one builder and worktree per part. What is left, or new
-   scope, becomes a change in the next milestone.
+   parts by the files they touch, one builder and worktree per part; each part's fix is a commit
+   on `milestone/<slug>`, never a PR of its own. What is left, or new scope, becomes a change in
+   the next milestone.
 5. Reopen recaptured images and rerun their visual checks. Then
    `python3 scripts/verify_gate.py milestone <id> --visual-check "<checker>" --visual-run "<run>"`
    once, after the fixes, never between them; on `FAIL` fix and rerun until `VERIFY PASS` (passed
@@ -413,7 +418,8 @@ into `project/<slug>`.
 2. Re-run `checks.milestone` on `git diff origin/<defaultBranch>...project/<slug>` — the whole
    project as one diff. The per-milestone reviews each saw one slice; this is the first time
    anything looks at the seams between them. Run `cct:security-review` on the same diff when auth, money or consent is touched;
-   it is the project's only security review.
+   it is the project's only security review. A fix or the gate line is a commit on
+   `project/<slug>`, not a PR.
 3. One PR `project/<slug>` → default branch. **This is the PR that CI reviews and tiers** — the
    first and only one in the whole chain that does. Auto-merge armed when the tier allows.
 4. **The engineer accepts the project** in one `AskUserQuestion`. No second fix round: what is
