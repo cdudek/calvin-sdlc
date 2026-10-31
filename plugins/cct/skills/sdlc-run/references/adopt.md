@@ -45,7 +45,7 @@ and MANUAL drops the App secrets, `SDLC_COOWNER`, the Slack token and the CODEOW
 note. You arm `gh pr merge <n> --squash --auto` on each PR yourself. `claude` is a separate
 switch: `tiers: false` keeps the Claude review.
 
-The four issue templates mirror the Linear templates in `cct:linear-manage`, so an issue reads
+The four issue templates mirror the Linear templates in `omr-dev:linear-manage`, so an issue reads
 the same whichever tracker it started in. They are kept once written — a team that adds a field to
 its own bug form does not lose it on the next run. The PR template carries the requirement-to-proof
 table, which is what makes `F1` traceable from `facts.md` through the test to the merge.
@@ -57,7 +57,7 @@ table, which is what makes `F1` traceable from `facts.md` through the test to th
   Then you: check the Done section reads well.
 - `.claude/plans/*` → `docs/history/plans/` (git mv). Handovers from now on live in the
   change folder.
-- `docs/ux/decisions.md`, the log `cct:ux-decision` used to append to → one ADR per decision
+- `docs/ux/decisions.md`, the log `omr-ux:decision` used to append to → one ADR per decision
   under `designsDir` (nested by `<year>/<year-month>/` when the folder already is), with
   `supersedes` and `superseded_by` read from its "Replaced on … by …" notes. The log becomes
   a pointer. Then `INDEX.md` is written. Then you: link every reference under MANUAL
@@ -85,7 +85,7 @@ table, which is what makes `F1` traceable from `facts.md` through the test to th
 7. The CLAUDE.md section it appended states the process and `/goal`; if the repo's
    CLAUDE.md said "ask before merging", change it to "the tier decides".
 8. **CI.** `adopt` never edits the repo's own `ci.yml`. Compare it with `references/ci-blueprint.md`
-   and recommend each gap to the engineer: docs-only PRs skipped behind one `check` status,
+   and recommend each gap to the engineer: every step gated on the PR's changed paths (docs run nothing) behind one `check` status,
    E2E against the built artifact, sharded, one retry, full E2E only where A5 says, and a
    ruleset that gives `project/*` (and `milestone/*` with `delivery: "feature-prs"`) the same
    required `check`. A repo with no CI gets the blueprint written. Only the `node` and
