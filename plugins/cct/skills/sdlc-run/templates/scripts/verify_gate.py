@@ -18,6 +18,9 @@ Stdout is capped. The last line is exactly one of:
     VERIFY FAIL <scope> <id> check=<name>  exit 1   -- fix and run again
     VERIFY BLOCKED reason=<code>           exit 3   -- stop and ask the engineer
 
+A repo whose `sdlcVersion` is missing or differs from the kit's gets one `WARN` line first;
+it never changes the verdict.
+
 A check may block on its own: when its output ends `VERIFY BLOCKED reason=<code>`, that line is
 passed through. The same failure three runs in a row blocks with reason=no-progress, and any
 three failed runs of one scope block with reason=attempts (delete verify/state.json to start
@@ -43,6 +46,7 @@ import time
 from pathlib import Path
 
 from marks import sessions
+from sdlc_version import kit_version, message
 
 REASONS = {
     "not-approved",  # no lock.json: the plan gate has not run
@@ -176,6 +180,10 @@ def run(
     out_dir = change / "verify"
     out_dir.mkdir(exist_ok=True)
     report: dict = {"scope": scope, "id": change.name, "checks": []}
+    kit, changelog = kit_version()
+    notice = message(cfg.get("sdlcVersion"), kit, changelog)
+    if notice:
+        print(f"WARN {notice}")  # never blocks; the last line stays the verdict
 
     def finish(line: str, code: int) -> int:
         report["result"] = line

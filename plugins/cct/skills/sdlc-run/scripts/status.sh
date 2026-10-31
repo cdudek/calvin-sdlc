@@ -24,6 +24,8 @@ if [ -n "$want" ] && [ "$have" != "$want" ]; then
 else
   echo "templates=current"
 fi
+# -#-#- VERSION -#-#-  one line when sdlc.json sdlcVersion is missing, older or newer than the kit.
+python3 "$(dirname "$0")/../templates/scripts/sdlc_version.py" "$root" 2>/dev/null || true
 branch=$(git -C "$root" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
 mode="${1:-}"
 

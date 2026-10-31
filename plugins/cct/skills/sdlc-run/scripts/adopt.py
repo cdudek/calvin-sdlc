@@ -1,7 +1,13 @@
 """Install the SDLC chain into the current repo from sdlc.json.
 
-    python3 adopt.py [--dry-run] [--preset node|python] [--ticket KEY-123] [--tiers yes|no]
+    python3 adopt.py [--dry-run] [--upgrade] [--apply --replace FILE] [--preset node|python] [--ticket KEY-123] [--tiers yes|no]
     python3 adopt.py --templates-hash        # what sdlc.json `kitTemplates` should say
+
+`--upgrade` is for a repo that already runs the chain, and it never overwrites or moves anything:
+it adds the missing sdlc.json keys with the stack's defaults (never changing a value), stamps
+`sdlcVersion`, and lists every file that differs from the kit's copy as `review diff` in MANUAL.
+`--upgrade --replace FILE` shows the diff of one kit-owned file; add `--apply` to replace it.
+`--dry-run` writes nothing at all. A plain `adopt` stamps too and still refreshes the copies.
 
 `--tiers` writes the engineer's answer to "Use Ship/Show/Ask?" into sdlc.json `tiers`; the
 skill asks it on every adopt. Without the flag, a set `tiers` stays and a missing one means
@@ -60,7 +66,16 @@ def templates_hash() -> str:
 if "--templates-hash" in sys.argv:
     print(templates_hash())
     sys.exit(0)
-DRY = "--dry-run" in sys.argv
+DRY_RUN = "--dry-run" in sys.argv
+# `--upgrade` never overwrites or moves anything. It runs the whole flow as a dry run to learn which
+# files differ from the kit's copies, writes only sdlc.json (missing keys, the version stamp) and
+# lists the rest for review. `--apply --replace <file>` replaces one kit-owned file, diff shown.
+UPGRADE = "--upgrade" in sys.argv
+APPLY = "--apply" in sys.argv
+REPLACE = [a for a in (sys.argv[i + 1 : i + 2] for i, v in enumerate(sys.argv) if v == "--replace")]
+REPLACE = [r[0] for r in REPLACE if r]
+DRY = DRY_RUN or UPGRADE
+pending: dict[str, tuple[str, bool]] = {}  # file -> (the kit's text, executable) where it differs
 # Ship/Show/Ask when sdlc.json has no `tiers` and adopt got no --tiers. The skill's question
 # recommends the same value.
 TIERS_DEFAULT = False
@@ -250,7 +265,7 @@ def migrate_archive_layout(changes: Path) -> None:
                     encoding="utf-8",
                 )
     # git leaves the emptied year/month and flat parents behind; they are not ours to keep.
-    for d in sorted(archive.rglob("*"), key=lambda p: -len(p.parts)):
+    for d in sorted(archive.rglob("*"), key=lambda p: -len(p.parts)) if not DRY else ():
         if d.is_dir() and not any(d.iterdir()):
             d.rmdir()
 
@@ -506,6 +521,7 @@ def write(path: Path, text: str, *, keep: bool = False, executable: bool = False
         kept.append(rel)
         return
     wrote.append(rel)
+    pending[rel] = (text, executable)
     if DRY:
         return
     written.append(path)
@@ -602,16 +618,128 @@ MAX_FAILURES = re.compile(r"--max-failures(?:=|\s+)\S+")
 CI_STACK = {"node": "typescript", "python": "python"}
 
 
+KIT_CI_MARKER = "# CI for any stack: one workflow, one required status"
+
+
+def kit_version() -> str:
+    m = re.search(r"^  version:\s*(\S+)", (SKILL / "SKILL.md").read_text(encoding="utf-8"), re.M)
+    return m.group(1) if m else "0.0.0"
+
+
 def add_ci_paths(cfg: dict, preset: str) -> None:
     """`ciPaths` is the repo's own list of which changed files switch which CI step on; the CI
     `changes` job and the agents' "touched tests" read it. Added from the stack's default when
-    missing, never overwritten."""
-    if "ciPaths" in cfg:
+    missing; a block that exists keeps every value and only gains the keys it lacks (`code`,
+    `config`, `specs` arrived in 3.3.0)."""
+    defaults = json.loads((TPL / "ci-paths.json").read_text(encoding="utf-8"))[CI_STACK[preset]]
+    if "ciPaths" not in cfg:
+        cfg["ciPaths"] = defaults
+        wrote.append(
+            f"sdlc.json: ciPaths added ({CI_STACK[preset]} defaults; edit to the repo's folders)"
+        )
         return
-    defaults = json.loads((TPL / "ci-paths.json").read_text(encoding="utf-8"))
-    cfg["ciPaths"] = defaults[CI_STACK[preset]]
-    wrote.append(
-        f"sdlc.json: ciPaths added ({CI_STACK[preset]} defaults; edit to the repo's folders)"
+    added = [k for k in defaults if k not in cfg["ciPaths"]]
+    for k in added:
+        cfg["ciPaths"][k] = defaults[k]
+    if added:
+        wrote.append(
+            f"sdlc.json: ciPaths gained {', '.join(added)} ({CI_STACK[preset]} defaults; check them against the repo's folders)"
+        )
+
+
+def add_ci_commands(cfg: dict, preset: str) -> None:
+    """`ciCommands` is what each job of templates/ci/github-actions.yml runs. Missing keys come
+    from the stack's defaults; values the repo set are never touched."""
+    defaults = json.loads((TPL / "ci-commands.json").read_text(encoding="utf-8"))[CI_STACK[preset]]
+    have = cfg.setdefault("ciCommands", {})
+    added = [k for k in defaults if k not in have]
+    for k in added:
+        have[k] = defaults[k]
+    if added:
+        wrote.append(
+            f"sdlc.json: ciCommands added {', '.join(added)} ({CI_STACK[preset]} defaults)"
+        )
+
+
+def stamp_version(cfg: dict, *, fresh: bool) -> None:
+    """`sdlcVersion` says which kit version the repo was last adopted or upgraded with, so the
+    skill can tell a repo it is behind. On a move from an older stamp, the changelog's manual
+    migrations in between go to MANUAL."""
+    new = kit_version()
+    old = cfg.get("sdlcVersion")
+    spec = importlib.util.spec_from_file_location(
+        "sdlc_version", TPL / "scripts" / "sdlc_version.py"
+    )
+    mod = importlib.util.module_from_spec(spec)  # type: ignore[arg-type]
+    spec.loader.exec_module(mod)  # type: ignore[union-attr]
+    if old and old != new and mod.parse(old) > mod.parse(new):
+        manual.append(
+            f"sdlc.json says sdlcVersion {old}, newer than this kit ({new}): update the omr-dev plugin"
+        )
+        return
+    if old != new:
+        cfg["sdlcVersion"] = new
+        wrote.append(f"sdlc.json: sdlcVersion {old or 'none'} -> {new}")
+    if fresh or old == new:
+        return
+    for version, headline, _mech, todo in reversed(
+        mod.between(SKILL / "references" / "changelog.md", old, new)
+    ):
+        for line in todo:
+            manual.append(f"upgrade {version} ({headline}): {line}")
+
+
+def ci_gaps(text: str) -> list[str]:
+    gaps = []
+    if not re.search(r"^  check:\s*$", text, re.M):
+        gaps.append("no job named `check` as the one required status")
+    if "ciPaths" not in text:
+        gaps.append("steps are not gated on changed files from sdlc.json ciPaths")
+    if "paths-ignore" in text:
+        gaps.append("workflow-level paths-ignore leaves a required status pending forever")
+    if "fromJSON" not in text and "shard" not in text:
+        gaps.append("E2E is not sharded")
+    return gaps
+
+
+def adopt_ci(cfg: dict, preset: str) -> None:
+    """A repo with no CI gets templates/ci/github-actions.yml with its STACK and default branch
+    set. A repo with its own CI keeps it; adopt prints what it lacks and which jobs to copy."""
+    wf = ROOT / ".github" / "workflows"
+    kit_names = {p.name for p in (TPL / "workflows").glob("*.yml")}
+    own = sorted(p for p in (*wf.glob("*.yml"), *wf.glob("*.yaml")) if p.name not in kit_names)
+    ci = wf / "ci.yml"
+    if ci.exists() and ci.read_text(encoding="utf-8").startswith(KIT_CI_MARKER):
+        kept.append(".github/workflows/ci.yml (the kit's template, the repo's now)")
+        return
+    template = TPL / "ci" / "github-actions.yml"
+    if not own and UPGRADE:
+        manual.append(
+            f"CI: the repo has no CI workflow; copy {template} to .github/workflows/ci.yml "
+            f"(set STACK {preset}) or run `adopt`"
+        )
+        return
+    if not own:
+        text = template.read_text(encoding="utf-8")
+        text = text.replace("  STACK: node #", f"  STACK: {preset} #", 1)
+        text = text.replace(
+            "branches: [main] # the default branch",
+            f"branches: [{cfg.get('defaultBranch', 'main')}] # the default branch",
+            1,
+        )
+        write(ci, text)
+        manual.append(
+            "CI: .github/workflows/ci.yml was written from the kit's template (STACK "
+            f"{preset}); check sdlc.json ciCommands and ciPaths, then make `check` the only required status (ci-blueprint.md, A6)"
+        )
+        return
+    gaps = ci_gaps("\n".join(p.read_text(encoding="utf-8") for p in own))
+    manual.append(
+        "CI: the repo has its own workflow(s) ("
+        + ", ".join(p.name for p in own)
+        + "), left alone. "
+        + (f"Gaps: {'; '.join(gaps)}. " if gaps else "No gaps found by grep. ")
+        + f"Copy the `changes` and `check` jobs from {template} and gate each job on its flag (references/ci-blueprint.md)"
     )
 
 
@@ -687,20 +815,74 @@ def apply_tiers_answer(cfg: dict) -> None:
         wrote.append(f"sdlc.json: tiers {str(cfg['tiers']).lower()} (Ship/Show/Ask: {answer})")
 
 
+def finish_upgrade() -> str:
+    """After the dry-run flow: everything it would have written or moved becomes a review line,
+    and `--replace <file>` shows (or, with --apply, writes) the kit's copy of one file."""
+    import difflib
+
+    review = [w for w in wrote if not w.startswith("sdlc.json")]
+    wrote[:] = [w for w in wrote if w.startswith("sdlc.json")]
+    for w in review:
+        rel = w.split(" ")[0]
+        if rel in pending:
+            manual.append(
+                f"review diff: {rel} differs from the kit's copy (the kit changed it or the repo "
+                f"edited it); left alone. See the diff: `adopt --upgrade --replace {rel}`; "
+                f"replace it: add `--apply`"
+            )
+        else:
+            manual.append(
+                f"review: `{w}` is a layout migration or removal that --upgrade does not apply; run `adopt` to apply it"
+            )
+    out = []
+    for rel in REPLACE:
+        if rel not in pending:
+            manual.append(
+                f"--replace {rel}: nothing to replace (it is the kit's copy already, or not a file adopt owns)"
+            )
+            continue
+        text, executable = pending[rel]
+        path = ROOT / rel
+        old = path.read_text(encoding="utf-8").splitlines(True) if path.exists() else []
+        out.append(
+            "".join(difflib.unified_diff(old, text.splitlines(True), f"a/{rel}", f"b/{rel} (kit)"))
+        )
+        if APPLY and not DRY_RUN:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(text, encoding="utf-8")
+            if executable:
+                path.chmod(0o755)
+            wrote.append(f"{rel} (replaced by the kit's copy)")
+            manual[:] = [m for m in manual if not m.startswith(f"review diff: {rel} ")]
+        else:
+            manual.append(
+                f"--replace {rel}: diff shown, nothing written; add --apply to replace it"
+            )
+    return "\n".join(out)
+
+
 def main() -> int:
     preset = detect_preset()
     cfg_path = ROOT / "sdlc.json"
+    if UPGRADE and not cfg_path.exists():
+        sys.exit(
+            "sdlc.json is missing: this repo is not adopted. Run `adopt`, not `adopt --upgrade`."
+        )
     if cfg_path.exists():
         cfg = json.loads(cfg_path.read_text(encoding="utf-8"))
-        cfg["kitTemplates"] = templates_hash()
+        cfg_before = json.dumps(cfg, sort_keys=True)
         kept.append("sdlc.json")
-        apply_tiers_answer(cfg)
+        if not UPGRADE:
+            cfg["kitTemplates"] = templates_hash()
+            apply_tiers_answer(cfg)
     else:
         cfg = json.loads((TPL / "presets" / f"{preset}.json").read_text(encoding="utf-8"))
         cfg["defaultBranch"] = default_branch()
         cfg["kitTemplates"] = templates_hash()
         apply_tiers_answer(cfg)
         add_ci_paths(cfg, preset)
+        add_ci_commands(cfg, preset)
+        stamp_version(cfg, fresh=True)
         write(cfg_path, json.dumps(cfg, indent=2, ensure_ascii=False) + "\n")
         manual.append(
             f"sdlc.json was created from the {preset} preset -- check linear.team/project, verify, blocked, codeowners"
@@ -709,19 +891,33 @@ def main() -> int:
     # --- migration: the 2026-09-07 layout decision. `.changes/` -> `changes/` (visible: it is
     # the audit trail, not scratch), `specs/` -> `docs/designs/` (a design is documentation),
     # `specsDir` -> `designsDir`, and `spec:` -> `design:` in every change artifact. Idempotent.
-    if "specsDir" in cfg:
+    if UPGRADE and ("specsDir" in cfg or cfg.get("changesDir") == ".changes"):
+        manual.append(
+            "sdlc.json uses the old layout keys (specsDir, .changes): run `adopt`, not --upgrade, to migrate"
+        )
+    elif "specsDir" in cfg:
         cfg["designsDir"] = (
             "docs/designs" if cfg["specsDir"] in ("specs", "docs") else cfg.pop("specsDir")
         )
         cfg.pop("specsDir", None)
         wrote.append("sdlc.json: specsDir -> designsDir")
-    if cfg.get("changesDir") == ".changes":
+    if not UPGRADE and cfg.get("changesDir") == ".changes":
         cfg["changesDir"] = "changes"
         wrote.append("sdlc.json: changesDir .changes -> changes")
     if "sdlc.json" in kept:
         add_ci_paths(cfg, preset)
-        migrate_test_cost(cfg, preset)
-    if not DRY and cfg_path.exists() and "sdlc.json" in kept:
+        add_ci_commands(cfg, preset)
+        if not UPGRADE:
+            migrate_test_cost(cfg, preset)
+        elif "--repeat-each" in json.dumps(cfg.get("checks", {})):
+            manual.append(
+                "sdlc.json: checks.milestone repeats the whole suite (--repeat-each); `adopt` rewrites it, --upgrade leaves it"
+            )
+        stamp_version(cfg, fresh=False)
+    changed = UPGRADE and json.dumps(cfg, sort_keys=True) != cfg_before
+    if (changed and not DRY_RUN) or (
+        not UPGRADE and not DRY and cfg_path.exists() and "sdlc.json" in kept
+    ):
         cfg_path.write_text(json.dumps(cfg, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
         # Not via write(): sdlc.json is the repo's own file and only gets fields merged in.
         # It still has to reach format_written(), or a prettier repo rejects the commit.
@@ -917,7 +1113,13 @@ def main() -> int:
             f".github/tiers.json was created with {preset} defaults -- check the ask globs against what really hurts here"
         )
     # The verify contract runs in CI and in /goal, where no plugin is installed: a copy.
-    for script in ("verify_gate.py", "sdlc_status.py", "design_index.py", "marks.py"):
+    for script in (
+        "verify_gate.py",
+        "sdlc_status.py",
+        "design_index.py",
+        "marks.py",
+        "sdlc_version.py",
+    ):
         _write(ROOT / "scripts" / script, (TPL / "scripts" / script).read_text(encoding="utf-8"))
     gi = ROOT / ".gitignore"
     gi_lines = gi.read_text(encoding="utf-8").splitlines() if gi.exists() else []
@@ -952,6 +1154,7 @@ def main() -> int:
         manual.append("ruleset: set require_code_owner_review=false (no codeowners named)")
 
     # --- workflows
+    adopt_ci(cfg, preset)
     ci_name = "CI"
     ci = ROOT / ".github" / "workflows" / "ci.yml"
     if ci.exists():
@@ -1259,6 +1462,7 @@ def main() -> int:
         ]
     )
 
+    diffs = finish_upgrade() if UPGRADE else ""
     format_written()
 
     print("-#-#- WROTE -#-#-")
@@ -1267,7 +1471,12 @@ def main() -> int:
     print("\n".join(kept) or "(nothing)")
     print("-#-#- MANUAL -#-#-")
     print("\n".join(f"- {m}" for m in manual))
-    if DRY:
+    if diffs:
+        print("-#-#- DIFF -#-#-")
+        print(diffs)
+    if UPGRADE:
+        print("(upgrade: only sdlc.json keys and --apply --replace files are written)")
+    elif DRY:
         print("(dry run: nothing written)")
     return 0
 

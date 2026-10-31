@@ -282,12 +282,55 @@
   .cmd code{display:block;background:none;padding:0;font-size:14px;color:var(--ink);margin-bottom:6px}
   .cmd p{margin:0;font-size:14.5px;color:var(--ink2)}
   footer{margin-top:60px;color:var(--ink3);font-size:13px}
+
+  /* GitHub Actions setup, staying current */
+  .gh-steps{list-style:none;counter-reset:s;margin:0;padding:0;display:grid;gap:12px}
+  .gh-steps li{counter-increment:s;position:relative;padding:14px 16px 14px 56px;background:var(--card);border:1px solid var(--line);border-radius:14px;font-size:15.5px;color:var(--ink2)}
+  .gh-steps li::before{content:counter(s);position:absolute;left:14px;top:12px;width:30px;height:30px;border-radius:50%;
+       display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;border:2.5px solid var(--agent);color:var(--agent)}
+  .gh-steps b{color:var(--ink)}
+  .wex{margin-top:14px;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--card)}
+  .wx{display:grid;grid-template-columns:minmax(140px,1.25fr) repeat(5,minmax(52px,.42fr)) minmax(0,2.3fr);border-top:1px solid var(--line);font-size:13.5px}
+  .wx:first-child{border-top:none}
+  .wx > div{padding:9px 10px;min-width:0;overflow-wrap:anywhere;color:var(--ink2)}
+  .wx.h > div{font:700 11px var(--mono);letter-spacing:.07em;text-transform:uppercase;color:var(--ink3);background:var(--bg)}
+  .wx .k{display:none}
+  .wx .on{color:var(--agent);font-weight:700}
+  .wx .off{color:var(--ink3)}
+  .wx .pr{color:var(--ink);font-weight:600}
+  @media (max-width:860px){
+    .wx{grid-template-columns:repeat(5,1fr)}
+    .wx.h{display:none}
+    .wx > div{padding:5px 12px}
+    .wx > .pr{grid-column:1 / -1;padding-top:12px;font-size:14.5px}
+    .wx > .why{grid-column:1 / -1;padding-bottom:12px}
+    .wx .k{display:block;font:700 10px var(--mono);letter-spacing:.05em;color:var(--ink3);text-transform:uppercase}
+  }
+  .ftype{margin-top:14px;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--card)}
+  .ft{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,.8fr) minmax(0,1.5fr);border-top:1px solid var(--line);font-size:13.5px}
+  .ft:first-child{border-top:none}
+  .ft > div{padding:9px 12px;min-width:0;overflow-wrap:anywhere;color:var(--ink2)}
+  .ft.h > div{font:700 11px var(--mono);letter-spacing:.07em;text-transform:uppercase;color:var(--ink3);background:var(--bg)}
+  .ft .k{display:none}
+  .ft .yes{color:var(--agent);font-weight:700}
+  @media (max-width:700px){
+    .ft{grid-template-columns:1fr}
+    .ft.h{display:none}
+    .ft > div{padding:4px 14px}
+    .ft > div:first-child{padding-top:11px;color:var(--ink)}
+    .ft > div:last-child{padding-bottom:11px}
+    .ft .k{display:inline;font:700 10px var(--mono);letter-spacing:.05em;color:var(--ink3);text-transform:uppercase;margin-right:6px}
+  }
+  pre.code.yml{max-height:480px;overflow:auto;font-size:12px;line-height:1.5;tab-size:2}
+  pre.code .cm{color:var(--ink3)}
+  .ycap{margin:0 0 6px;font:600 12px var(--mono);color:var(--ink3);overflow-wrap:anywhere}
+  .warn{border-left:3px solid var(--amber);background:var(--amber-soft);border-radius:0 10px 10px 0;padding:10px 14px;font:13px/1.5 var(--mono);color:var(--ink);overflow-wrap:anywhere;margin:0 0 14px}
 </style>
 </head>
 <body>
 <main>
 
-<div class="kicker">cct · sdlc-run v3.2.0</div>
+<div class="kicker">cct · sdlc-run v3.3.1</div>
 <h1>sdlc-run, explained</h1>
 <p class="lede">You confirm intent and plan. The agent builds and checks inside /goal. Acceptance follows the shape of the work.</p>
 
@@ -314,7 +357,7 @@
   <div class="stat"><b>1</b><span>PR to default per project or standalone milestone</span></div>
   <div class="stat"><b>0</b><span>code written outside /goal</span></div>
 </div>
-<p class="new"><b>New in 3.2.0.</b> Milestone work is commits, not PRs: fixes, test repairs and records ride in the milestone PR. Each repo lists, in <code>sdlc.json</code> <code>ciPaths</code>, which changed paths switch which CI step on; <code>adopt</code> writes the defaults.</p>
+<p class="new"><b>New in 3.3.</b> The CI ships as one runnable GitHub Actions workflow for six stacks (<a href="#gha">setup in five steps</a>). A file that is neither code nor config runs no CI at all. Every repo records the sdlc-run version it runs in <code>sdlc.json</code>, and the skill tells you when it is behind (<a href="#current">staying current</a>).</p>
 </div>
 
 <!-- touchpoints -->
@@ -586,7 +629,7 @@
   <h3 style="margin-top:34px">The CI blueprint, A1 to A6</h3>
   <div class="card">
     <div class="afacts">
-      <div class="fact"><div class="ix">A1</div><p><b>Per-step gating.</b> Each step runs only when its paths changed, read from <code>sdlc.json</code> <code>ciPaths</code>; docs run nothing. One required <code>check</code> status still reports success.</p></div>
+      <div class="fact"><div class="ix">A1</div><p><b>Per-step gating.</b> Each step runs only when its paths changed, read from <code>sdlc.json</code> <code>ciPaths</code>; a file that is neither code nor config runs nothing. One required <code>check</code> status still reports success.</p></div>
       <div class="fact"><div class="ix">A2</div><p><b>Production target.</b> E2E runs against the built artifact, never a dev server.</p></div>
       <div class="fact"><div class="ix">A3</div><p><b>Shard.</b> The slow suite splits over N jobs, each with its own database service.</p></div>
       <div class="fact"><div class="ix">A4</div><p><b>One retry.</b> A pass on retry is reported. It fails only a full run.</p></div>
@@ -606,7 +649,7 @@
         <marker id="cx" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 10 5 0 10z" fill="var(--ink3)"/></marker>
       </defs>
       <g font-size="11" font-weight="700" class="m t3" text-anchor="middle" letter-spacing="1">
-        <text x="78" y="22">1 CHANGED FILES</text><text x="276" y="22">2 CIPATHS</text><text x="462" y="22">3 FLAGS</text><text x="608" y="22">4 JOBS</text><text x="806" y="22">5 GATE</text>
+        <text x="78" y="22">1 CHANGED FILES</text><text x="276" y="22">2 CIPATHS</text><text x="465" y="22">3 FLAGS</text><text x="602" y="22">4 JOBS</text><text x="806" y="22">5 GATE</text>
       </g>
       <rect class="bx" x="8" y="130" width="140" height="80" rx="12"/>
       <text x="78" y="162" text-anchor="middle" font-size="12.5" class="t2">PR changes only</text>
@@ -616,34 +659,35 @@
       <text x="276" y="78" text-anchor="middle" font-size="15" font-weight="800" class="tb">changes job</text>
       <text x="276" y="98" text-anchor="middle" font-size="12.5" class="tb m">reads sdlc.json ciPaths</text>
       <g font-size="12.5" class="t2">
-        <text x="194" y="136">docs list      → nothing</text>
-        <text x="194" y="164">all list       → everything</text>
-        <text x="194" y="192">include and not</text>
-        <text x="194" y="209">exclude        → that step</text>
-        <text x="194" y="237">no list knows it</text>
-        <text x="194" y="254">               → everything</text>
+        <text x="194" y="132">docs list → nothing</text>
+        <text x="194" y="156">all list → everything</text>
+        <text x="194" y="180">not code or config</text>
+        <text x="194" y="197">               → nothing</text>
+        <text x="194" y="221">include, not exclude</text>
+        <text x="194" y="238">               → that step</text>
+        <text x="194" y="262">no step lists it → all</text>
       </g>
       <g>
-        <path class="ln on" d="M376 170 H393 M393 65 V265"/>
-        <path class="ln on" d="M393 65 H408" marker-end="url(#cg)"/><path class="ln on" d="M393 115 H408" marker-end="url(#cg)"/><path class="ln on" d="M393 165 H408" marker-end="url(#cg)"/><path class="ln on" d="M393 215 H408" marker-end="url(#cg)"/><path class="ln on" d="M393 265 H408" marker-end="url(#cg)"/>
-        <rect class="f-on" x="410" y="46" width="104" height="38" rx="9"/><text x="462" y="70" text-anchor="middle" font-size="13" class="m tg" font-weight="700">lint · true</text>
-        <rect class="f-on" x="410" y="96" width="104" height="38" rx="9"/><text x="462" y="120" text-anchor="middle" font-size="13" class="m tg" font-weight="700">unit · true</text>
-        <rect class="f-off" x="410" y="146" width="104" height="38" rx="9"/><text x="462" y="170" text-anchor="middle" font-size="13" class="m t3" font-weight="700">build · false</text>
-        <rect class="f-off" x="410" y="196" width="104" height="38" rx="9"/><text x="462" y="220" text-anchor="middle" font-size="13" class="m t3" font-weight="700">e2e · false</text>
-        <rect class="f-off" x="410" y="246" width="104" height="38" rx="9"/><text x="462" y="270" text-anchor="middle" font-size="13" class="m t3" font-weight="700">deploy · false</text>
+        <path class="ln on" d="M376 170 H389 M389 65 V265"/>
+        <path class="ln on" d="M389 65 H402" marker-end="url(#cg)"/><path class="ln on" d="M389 115 H402" marker-end="url(#cg)"/><path class="ln on" d="M389 165 H402" marker-end="url(#cg)"/><path class="ln on" d="M389 215 H402" marker-end="url(#cg)"/><path class="ln on" d="M389 265 H402" marker-end="url(#cg)"/>
+        <rect class="f-on" x="404" y="46" width="122" height="38" rx="9"/><text x="465" y="70" text-anchor="middle" font-size="13" class="m tg" font-weight="700">lint · true</text>
+        <rect class="f-on" x="404" y="96" width="122" height="38" rx="9"/><text x="465" y="120" text-anchor="middle" font-size="13" class="m tg" font-weight="700">unit · true</text>
+        <rect class="f-off" x="404" y="146" width="122" height="38" rx="9"/><text x="465" y="170" text-anchor="middle" font-size="13" class="m t3" font-weight="700">build · false</text>
+        <rect class="f-off" x="404" y="196" width="122" height="38" rx="9"/><text x="465" y="220" text-anchor="middle" font-size="13" class="m t3" font-weight="700">e2e · false</text>
+        <rect class="f-off" x="404" y="246" width="122" height="38" rx="9"/><text x="465" y="270" text-anchor="middle" font-size="13" class="m t3" font-weight="700">deploy · false</text>
       </g>
       <g>
-        <path class="ln on" d="M516 65 H550" marker-end="url(#cg)"/><path class="ln on" d="M516 115 H550" marker-end="url(#cg)"/>
-        <path class="ln" d="M516 165 H550" marker-end="url(#cx)"/><path class="ln" d="M516 215 H550" marker-end="url(#cx)"/><path class="ln" d="M516 265 H550" marker-end="url(#cx)"/>
-        <rect class="f-on" x="552" y="46" width="112" height="38" rx="9"/><text x="608" y="70" text-anchor="middle" font-size="13" class="m tg" font-weight="700">lint runs</text>
-        <rect class="f-on" x="552" y="96" width="112" height="38" rx="9"/><text x="608" y="120" text-anchor="middle" font-size="13" class="m tg" font-weight="700">unit runs</text>
-        <rect class="f-off" x="552" y="146" width="112" height="38" rx="9"/><text x="608" y="170" text-anchor="middle" font-size="13" class="m t3" font-weight="700">build skips</text>
-        <rect class="f-off" x="552" y="196" width="112" height="38" rx="9"/><text x="608" y="220" text-anchor="middle" font-size="13" class="m t3" font-weight="700">e2e skips</text>
-        <rect class="f-off" x="552" y="246" width="112" height="38" rx="9"/><text x="608" y="270" text-anchor="middle" font-size="13" class="m t3" font-weight="700">deploy skips</text>
+        <path class="ln on" d="M528 65 H544" marker-end="url(#cg)"/><path class="ln on" d="M528 115 H544" marker-end="url(#cg)"/>
+        <path class="ln" d="M528 165 H544" marker-end="url(#cx)"/><path class="ln" d="M528 215 H544" marker-end="url(#cx)"/><path class="ln" d="M528 265 H544" marker-end="url(#cx)"/>
+        <rect class="f-on" x="546" y="46" width="112" height="38" rx="9"/><text x="602" y="70" text-anchor="middle" font-size="13" class="m tg" font-weight="700">lint runs</text>
+        <rect class="f-on" x="546" y="96" width="112" height="38" rx="9"/><text x="602" y="120" text-anchor="middle" font-size="13" class="m tg" font-weight="700">unit runs</text>
+        <rect class="f-off" x="546" y="146" width="112" height="38" rx="9"/><text x="602" y="170" text-anchor="middle" font-size="13" class="m t3" font-weight="700">build skips</text>
+        <rect class="f-off" x="546" y="196" width="112" height="38" rx="9"/><text x="602" y="220" text-anchor="middle" font-size="13" class="m t3" font-weight="700">e2e skips</text>
+        <rect class="f-off" x="546" y="246" width="112" height="38" rx="9"/><text x="602" y="270" text-anchor="middle" font-size="13" class="m t3" font-weight="700">deploy skips</text>
       </g>
       <g class="ln">
-        <path d="M666 65 C700 65 700 150 730 160" class="ln on"/><path d="M666 115 C700 115 700 160 730 166" class="ln on"/>
-        <path d="M666 165 C700 165 710 172 730 172"/><path d="M666 215 C700 215 700 184 730 178"/><path d="M666 265 C700 265 700 190 730 184" />
+        <path d="M660 65 C694 65 700 150 730 160" class="ln on"/><path d="M660 115 C694 115 700 160 730 166" class="ln on"/>
+        <path d="M660 165 C694 165 710 172 730 172"/><path d="M660 215 C694 215 700 184 730 178"/><path d="M660 265 C694 265 700 190 730 184" />
       </g>
       <rect x="732" y="120" width="160" height="104" rx="12" fill="var(--agent-soft)" stroke="var(--agent)" stroke-width="2.5"/>
       <text x="812" y="150" text-anchor="middle" font-size="17" font-weight="800" class="m tg">check</text>
@@ -666,10 +710,10 @@
       <text x="20" y="88" font-size="15" font-weight="800" class="tb">changes job</text>
       <text x="326" y="88" text-anchor="end" font-size="12" class="tb m">reads ciPaths</text>
       <g font-size="12.5" class="t2">
-        <text x="20" y="112">docs list → nothing</text>
-        <text x="20" y="132">all list → everything</text>
-        <text x="20" y="152">include, not exclude → that step</text>
-        <text x="20" y="172">no list knows it → everything</text>
+        <text x="20" y="108">docs list → nothing · all list → everything</text>
+        <text x="20" y="126">neither code nor config → nothing</text>
+        <text x="20" y="144">include, not exclude → that step</text>
+        <text x="20" y="162">no step lists it → everything</text>
       </g>
       <path class="ln on" d="M170 194 V210" marker-end="url(#cg2)"/>
       <text x="170" y="206" text-anchor="start" font-size="11" class="t3 m" dx="8">flag per step</text>
@@ -706,12 +750,14 @@
   <div class="split2">
     <div class="card pr pth" style="margin:0">
       <div class="route">changed path → steps that run</div>
-      <div class="row"><span><code>docs/guide.md</code>, <code>changes/</code>, plans</span><span class="yes">nothing</span></div>
+      <div class="row"><span><code>docs/guide.md</code>, <code>changes/</code>, plans, images, <code>.md</code></span><span class="yes">nothing</span></div>
       <div class="row"><span><code>src/cart.ts</code></span><span>lint, unit, build, e2e, deploy</span></div>
       <div class="row"><span><code>src/cart.test.ts</code></span><span>lint, unit</span></div>
       <div class="row"><span><code>e2e/pay.spec.ts</code></span><span>lint, e2e (touched specs)</span></div>
-      <div class="row"><span><code>.github/workflows/</code>, lockfiles, <code>sdlc.json</code></span><span>everything</span></div>
-      <div class="row"><span>a file no list knows, <code>tools/x.sh</code></span><span>everything</span></div>
+      <div class="row"><span><code>src/app.css</code></span><span>lint, e2e, deploy</span></div>
+      <div class="row"><span><code>drizzle/0001.sql</code></span><span>unit, e2e, deploy</span></div>
+      <div class="row"><span><code>.github/workflows/</code>, lockfiles, <code>sdlc.json</code>, <code>tsconfig.json</code></span><span>everything</span></div>
+      <div class="row"><span>a notes file, <code>tools/x.csv</code></span><span class="yes">nothing</span></div>
     </div>
     <div class="card" style="margin:0">
       <h3>In <code>sdlc.json</code>, a TypeScript repo</h3>
@@ -719,6 +765,9 @@
   "docs": ["changes/*", "*.md"],
   "all": [".github/workflows/*",
           "sdlc.json", "*.lock*"],
+  "code": ["src/*", "*.ts", "*.css"],
+  "config": ["package.json", "Dockerfile*"],
+  "specs": ["e2e/*.spec.*"],
   "unit": {
     "include": ["src/*"],
     "exclude": ["e2e/*"] },
@@ -730,10 +779,10 @@
   </div>
   <ul class="small muted" style="margin:14px 0 0;padding-left:18px">
     <li>A step runs for a file that matches its <code>include</code> and not its <code>exclude</code>. Globs are shell globs; <code>*</code> also crosses <code>/</code>.</li>
-    <li>A file that matches nothing runs everything, so a forgotten path costs minutes, never a missed check. Migrations are never excluded.</li>
+    <li>A file that is neither code nor config runs nothing: no code or config touched, no CI. A code or config file that no step lists runs everything, so a forgotten path costs minutes, never a missed check. Migrations are never excluded.</li>
     <li>E2E scope is separate: the full suite only on PRs into the default branch or <code>project/*</code> and on milestone heads; other PRs run the touched specs (A5).</li>
     <li><code>adopt</code> writes the stack's defaults (TypeScript, Python, Rust, Rails, Kotlin, Scala) once and never overwrites them. <code>ciPaths</code> sits outside <code>checks</code>, so editing it needs no unlock.</li>
-    <li>A YAML counts as docs only if nothing reads it. Workflows, app config, k8s and terraform YAML are code.</li>
+    <li>A YAML counts as ignorable only if nothing reads it. Workflows, app config, k8s and terraform YAML are config.</li>
   </ul>
 
   <h3 style="margin-top:34px">Commands per stack</h3>
@@ -771,6 +820,145 @@
       <div><span class="k">Retry</span>ScalaTest <code>Retries</code> on a listed suite</div></div>
   </div>
   <p class="small muted" style="margin-top:12px">Touched tests are the changed specs in the PR plus the tests of any module the diff touches. An empty set runs lint, types and unit tests only. One retry on CI: a pass on retry is reported, and fails the run only on a full run.</p>
+</section>
+
+<!-- GitHub Actions setup -->
+<section id="gha">
+  <h2>GitHub Actions setup</h2>
+  <p class="sub">The CI is one workflow file and five steps. Nothing in it is repo specific except <code>STACK</code> and two blocks of <code>sdlc.json</code>.</p>
+  <ol class="gh-steps">
+    <li><b>Copy the workflow.</b> <code>cp templates/ci/github-actions.yml .github/workflows/ci.yml</code>. <code>adopt</code> does it for a repo with no CI; a repo with its own CI copies the <code>changes</code> and <code>check</code> jobs and gates its jobs on their flags. One complete, runnable file for every stack.</li>
+    <li><b>Set <code>STACK</code></b> at the top (<code>node</code>, <code>python</code>, <code>rust</code>, <code>ruby-rails</code>, <code>kotlin</code> or <code>scala</code>) and the version line for it, and the default branch in <code>on.push.branches</code>. Delete the <code>services:</code> block of <code>unit</code> and <code>e2e</code> if the repo has no database.</li>
+    <li><b>Check <code>sdlc.json</code>.</b> <code>ciPaths</code> says which changed files run which step. <code>ciCommands</code> says what each job runs: <code>install</code>, <code>lint</code>, <code>unit</code>, <code>build</code>, <code>e2e</code> (with <code>{shard}</code> and <code>{total}</code>) and <code>e2eTouched</code> (with <code>{files}</code>). Defaults per stack ship with the skill; <code>adopt</code> fills them.</li>
+    <li><b>Apply the A6 ruleset</b>, so <code>project/*</code> (and <code>milestone/*</code> with <code>feature-prs</code>) need the same status as the default branch.</li>
+    <li><b>Make <code>check</code> the only required status.</b> Every other job hangs off it, and it reports even when every job was skipped.</li>
+  </ol>
+
+  <h3 style="margin-top:34px">What runs for which file</h3>
+  <p class="sub" style="margin-bottom:0">If no code or config was touched, nothing runs. The only cost of such a PR is the <code>changes</code> job (about 10 seconds) and <code>check</code>, because a required status that never reports leaves the PR unmergeable.</p>
+  <div class="ftype" role="table" aria-label="Changed file types and the steps they run">
+    <div class="ft h" role="row"><div>Changed file</div><div>Type</div><div>Steps that run</div></div>
+    <div class="ft" role="row"><div><span class="k">file</span><code>README.md</code>, <code>docs/*</code>, <code>changes/*</code>, <code>.claude/*</code>, <code>*.txt</code>, an image</div><div><span class="k">type</span>not code, not config</div><div><span class="k">runs</span><span class=yes>nothing</span></div></div>
+    <div class="ft" role="row"><div><span class="k">file</span><code>src/*</code>, <code>app/*</code>, <code>*.ts</code>, <code>*.py</code>, <code>*.rs</code>, <code>*.rb</code></div><div><span class="k">type</span>code</div><div><span class="k">runs</span>lint, unit, build, deploy; e2e as touched specs, or the whole suite where the safety net applies</div></div>
+    <div class="ft" role="row"><div><span class="k">file</span><code>test/*</code>, <code>*.test.*</code></div><div><span class="k">type</span>code (tests)</div><div><span class="k">runs</span>lint, unit</div></div>
+    <div class="ft" role="row"><div><span class="k">file</span><code>e2e/*.spec.*</code></div><div><span class="k">type</span>code (a spec)</div><div><span class="k">runs</span>lint, e2e on that spec only</div></div>
+    <div class="ft" role="row"><div><span class="k">file</span><code>*.css</code>, <code>*.scss</code></div><div><span class="k">type</span>code (styles)</div><div><span class="k">runs</span>lint, e2e, deploy; not unit</div></div>
+    <div class="ft" role="row"><div><span class="k">file</span><code>drizzle/*</code>, <code>db/migrate/*</code>, <code>*.sql</code></div><div><span class="k">type</span>code (migrations)</div><div><span class="k">runs</span>unit, e2e, deploy</div></div>
+    <div class="ft" role="row"><div><span class="k">file</span><code>package.json</code>, <code>tsconfig*.json</code>, <code>Dockerfile*</code>, <code>*.tf</code></div><div><span class="k">type</span>config</div><div><span class="k">runs</span>every step</div></div>
+    <div class="ft" role="row"><div><span class="k">file</span><code>pnpm-lock.yaml</code>, <code>.github/workflows/*</code>, <code>sdlc.json</code></div><div><span class="k">type</span>config, in <code>all</code></div><div><span class="k">runs</span>every step</div></div>
+  </div>
+
+  <h3 style="margin-top:34px">Worked example</h3>
+  <p class="sub" style="margin-bottom:0">The TypeScript defaults. Four PRs from a feature branch into <code>milestone/x</code>, then the same code into the default branch.</p>
+  <div class="wex" role="table" aria-label="Worked example: which jobs run for each PR">
+    <div class="wx h" role="row"><div>PR changes</div><div>lint</div><div>unit</div><div>build</div><div>e2e</div><div>deploy</div><div>Why</div></div>
+    <div class="wx" role="row"><div class="pr"><code>README.md</code>, <code>docs/guide.md</code></div><div class="off"><span class="k">lint</span>skips</div><div class="off"><span class="k">unit</span>skips</div><div class="off"><span class="k">build</span>skips</div><div class="off"><span class="k">e2e</span>skips</div><div class="off"><span class="k">deploy</span>skips</div><div class="why">Both match <code>ciPaths.docs</code>. Only <code>changes</code> and <code>check</code> run.</div></div>
+    <div class="wx" role="row"><div class="pr"><code>docs/img/diagram.png</code>, <code>README.md</code></div><div class="off"><span class="k">lint</span>skips</div><div class="off"><span class="k">unit</span>skips</div><div class="off"><span class="k">build</span>skips</div><div class="off"><span class="k">e2e</span>skips</div><div class="off"><span class="k">deploy</span>skips</div><div class="why">An image outside the code folders is neither code nor config. Nothing runs.</div></div>
+    <div class="wx" role="row"><div class="pr"><code>src/lib/price.ts</code></div><div class="on"><span class="k">lint</span>runs</div><div class="on"><span class="k">unit</span>runs</div><div class="on"><span class="k">build</span>runs</div><div class="off"><span class="k">e2e</span>skips</div><div class="on"><span class="k">deploy</span>runs</div><div class="why">Code: every step's include matches. E2E skips because no spec changed; the whole suite runs on the PR into the default branch.</div></div>
+    <div class="wx" role="row"><div class="pr"><code>e2e/login.spec.ts</code></div><div class="on"><span class="k">lint</span>runs</div><div class="off"><span class="k">unit</span>skips</div><div class="off"><span class="k">build</span>skips</div><div class="on"><span class="k">e2e</span>runs</div><div class="off"><span class="k">deploy</span>skips</div><div class="why">Lint, and one E2E leg that runs just that spec. <code>e2e/*</code> is excluded from unit, build and deploy.</div></div>
+    <div class="wx" role="row"><div class="pr"><code>src/lib/price.ts</code>, PR into the default branch</div><div class="on"><span class="k">lint</span>runs</div><div class="on"><span class="k">unit</span>runs</div><div class="on"><span class="k">build</span>runs</div><div class="on"><span class="k">e2e</span>runs</div><div class="on"><span class="k">deploy</span>runs</div><div class="why">The safety net: code in a PR into the default branch or <code>project/*</code>, or from <code>milestone/*</code>, runs every step and all 4 shards.</div></div>
+    <div class="wx" role="row"><div class="pr">any push to the default branch</div><div class="on"><span class="k">lint</span>runs</div><div class="on"><span class="k">unit</span>runs</div><div class="on"><span class="k">build</span>runs</div><div class="on"><span class="k">e2e</span>runs</div><div class="on"><span class="k">deploy</span>runs</div><div class="why">The same net after the merge.</div></div>
+  </div>
+  <p class="small muted" style="margin:12px 0 0">The safety net costs one thing: a code file missing from <code>code</code> or <code>config</code>, in a PR that changes only that file, runs nothing until the push after the merge. Keep both lists complete.</p>
+
+  <h3 style="margin-top:34px">The <code>changes</code> job</h3>
+  <p class="sub" style="margin-bottom:10px">An excerpt of <code>templates/ci/github-actions.yml</code>: the job that decides, one gated job, and <code>check</code>. The file has the rest: the stack setup for six stacks, the sharded <code>e2e</code> job with its database service, and the <code>deploy</code> hook.</p>
+  <div class="card" style="padding:14px 14px 4px">
+    <p class="ycap">.github/workflows/ci.yml</p>
+<pre class="code yml" tabindex="0">  changes:
+    name: Changed paths
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      lint: ${{ steps.f.outputs.lint }}
+      unit: ${{ steps.f.outputs.unit }}
+      build: ${{ steps.f.outputs.build }}
+      deploy: ${{ steps.f.outputs.deploy }}
+      full: ${{ steps.f.outputs.full }}
+      matrix: ${{ steps.f.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 <span class="cm"># v7.0.1</span>
+        with:
+          persist-credentials: false
+          sparse-checkout: sdlc.json <span class="cm"># only the path lists are needed</span>
+          sparse-checkout-cone-mode: false
+      - id: f
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          BASE: ${{ github.base_ref }}
+          HEAD: ${{ github.head_ref }}
+          DEFAULT: ${{ github.event.repository.default_branch }}
+        run: |
+          <span class="cm"># &gt;&gt;&gt; changes-script (scripts/test_ci_changes.sh runs exactly these lines)</span>
+          set -eu
+          set -f <span class="cm"># keep the globs literal</span>
+          <span class="cm"># …</span>
+          list() { jq -r "(.ciPaths$1 // []) | join(\" \")" sdlc.json; }
+          hit() { for g in $2; do case "$1" in $g) return 0 ;; esac; done; return 1; }
+          <span class="cm"># …</span>
+            while IFS= read -r f; do
+              [ -n "$f" ] || continue
+              hit "$f" "$IGNORE" &amp;&amp; continue
+              if hit "$f" "$ALL"; then everything; touched=true; continue; fi
+              hit "$f" "$CODE" || continue <span class="cm"># neither code nor config: runs nothing</span>
+              touched=true
+              <span class="cm"># …</span>
+              for s in $STEPS; do
+                eval "inc=\"\$inc_$s\" exc=\"\$exc_$s\""
+                <span class="cm"># on a step when it matches the include and not the exclude</span>
+                if hit "$f" "$inc"; then known=true; hit "$f" "$exc" || eval "$s=true"; fi
+              done
+              <span class="cm"># code or config that no step's include knows is a path you forgot to list: run everything</span>
+              $known || everything
+            <span class="cm"># …</span>
+            <span class="cm"># safety net: where the full suite runs, any code or config change runs every step</span>
+            if [ "$touched" = true ] &amp;&amp; [ "$full" = true ]; then everything; fi
+          <span class="cm"># …</span>
+
+  lint:
+    name: Lint and types
+    needs: changes
+    if: needs.changes.outputs.lint == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      <span class="cm"># checkout and the stack setup steps …</span>
+      - name: Lint (ciCommands.lint)
+        run: |
+          cmd=$(jq -r '.ciCommands.lint // empty' sdlc.json)
+          if [ -z "$cmd" ]; then echo "::error::sdlc.json has no ciCommands.lint; set it (to true if this repo has no such step)"; exit 1; fi
+          echo "+ $cmd"; bash -eo pipefail -c "$cmd"
+
+  <span class="cm"># The one required status. It always runs and always reports, so a PR that needed no job is still mergeable.</span>
+  check:
+    name: check
+    if: always()
+    needs: [changes, lint, unit, build, e2e, deploy]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          <span class="cm"># skipped is fine: a flag said the step was not needed. failure or cancelled is not.</span>
+          case " $RESULTS " in *" failure "*|*" cancelled "*) echo "::error::a job failed: $RESULTS"; exit 1 ;; esac
+          echo "all jobs passed or were skipped on purpose: $RESULTS"</pre>
+  </div>
+</section>
+
+<!-- staying current -->
+<section id="current">
+  <h2>Staying current</h2>
+  <p class="sub"><code>adopt</code> writes <code>"sdlcVersion": "3.3.1"</code> into <code>sdlc.json</code>. Every time the skill runs in the repo, <code>status</code> and the verify gate compare that stamp with the installed kit.</p>
+  <p class="warn">This repo runs sdlc-run 3.2.0; the kit is 3.3.1. Run `adopt --upgrade` (changes: 3.3.1: adopt --upgrade never overwrites or moves anything; 3.3.0: the CI workflow ships as a template, ciPaths by file type, versioned repos).</p>
+  <div class="afacts card">
+    <div class="fact"><div class="ix">1</div><p><b>The stamp.</b> A repo adopted before 3.3.0 has none, which counts as the oldest version.</p></div>
+    <div class="fact"><div class="ix">2</div><p><b>The warning.</b> One line, for a missing or older stamp, and one telling you to update the plugin when the repo is newer than the kit. The verify gate prints it as a <code>WARN</code> line. It never blocks anything.</p></div>
+    <div class="fact"><div class="ix">3</div><p><b><code>/cct:sdlc-run adopt --upgrade</code> is the safe path.</b> It adds the keys a newer kit introduced with the stack's defaults, never changes a value, stamps the new version, and writes nothing else: no file overwritten, no folder moved. <code>--dry-run</code> shows it without writing.</p></div>
+    <div class="fact"><div class="ix">4</div><p><b>Everything else is a list for you.</b> Each file that differs from the kit's copy (a hook, <code>scripts/verify_gate.py</code>, <code>docs/sdlc.md</code>, the guardrail test) shows up as <code>review diff</code>, next to the manual migrations of <code>references/changelog.md</code> since your stamp. <code>adopt --upgrade --replace &lt;file&gt;</code> shows one diff; <code>--apply --replace &lt;file&gt;</code> replaces that file. A plain <code>adopt</code> refreshes every copy at once.</p></div>
+  </div>
 </section>
 
 <!-- verify -->
@@ -871,13 +1059,14 @@
     <div class="card cmd"><code>/cct:sdlc-run add dark mode</code><p>Start a new change. A Linear ticket id works too.</p></div>
     <div class="card cmd"><code>/cct:sdlc-run</code><p>Continue the change on the current branch, from wherever it stopped.</p></div>
     <div class="card cmd"><code>/cct:sdlc-run status</code><p>See open changes, their stage and their gates.</p></div>
-    <div class="card cmd"><code>/cct:sdlc-run adopt</code><p>Set up a repo: config, verify script, hooks, and the stack's default <code>ciPaths</code> in <code>sdlc.json</code>. It checks your CI against the blueprint (step 8) and recommends the gaps. It never edits your <code>ci.yml</code>.</p></div>
+    <div class="card cmd"><code>/cct:sdlc-run adopt</code><p>Set up a repo: config, verify script, hooks, <code>sdlcVersion</code>, the stack's <code>ciPaths</code> and <code>ciCommands</code> in <code>sdlc.json</code>, and <code>.github/workflows/ci.yml</code> when the repo has no CI. With its own CI, it prints the gaps and which jobs to copy.</p></div>
+    <div class="card cmd"><code>/cct:sdlc-run adopt --upgrade</code><p>Bring a repo up to the installed kit: missing keys added, version stamped, manual migrations listed.</p></div>
     <div class="card cmd"><code>/cct:sdlc-run tracker</code><p>Choose or switch the tracker: Linear, GitHub, Beads or none.</p></div>
-    <div class="card cmd"><code>references/ci-blueprint.md</code><p>The CI blueprint adopt compares against. A repo with no CI gets it written. The node and python presets exist; <code>ciPaths</code> defaults cover six stacks, and other stacks take the nearest preset and the row from the table above.</p></div>
+    <div class="card cmd"><code>references/ci-blueprint.md</code><p>The five setup steps, the worked example and the rules A1 to A6. The workflow itself is <code>templates/ci/github-actions.yml</code>.</p></div>
   </div>
 </section>
 
-<footer>Describes cct:sdlc-run v3.2.0 on calvins-claude-tools main, 31 October 2026. Details: the skill's references/stages.md and references/ci-blueprint.md.</footer>
+<footer>Describes cct:sdlc-run v3.3.1 on calvins-claude-tools main, 31 October 2026. Details: the skill's references/stages.md and references/ci-blueprint.md.</footer>
 </main>
 </body>
 </html>

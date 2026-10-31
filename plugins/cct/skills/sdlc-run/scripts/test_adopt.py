@@ -12,6 +12,7 @@ import datetime as dt
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -1142,3 +1143,265 @@ def test_adopt_writes_ci_paths_once_and_keeps_the_repos_own(
     res = _adopt(repo)
     assert any("ciPaths added" in w for w in _sections(res.stdout)["WROTE"])
     assert json.loads((repo / "sdlc.json").read_text())["ciPaths"] == defaults[stack]
+
+
+def test_ci_defaults_name_code_config_specs_and_commands() -> None:
+    tpl = SCRIPTS.parent / "templates"
+    paths = json.loads((tpl / "ci-paths.json").read_text())
+    commands = json.loads((tpl / "ci-commands.json").read_text())
+    for name in ("typescript", "python", "rust", "rails", "kotlin", "scala"):
+        assert paths[name]["code"] and paths[name]["config"] and paths[name]["specs"], name
+        assert {"install", "lint", "unit", "build", "e2e", "e2eTouched"} <= set(commands[name]), (
+            name
+        )
+        assert "{shard}" in commands[name]["e2e"] or "{total}" in commands[name]["e2e"], name
+
+
+def test_ci_template_changes_script_and_actionlint() -> None:
+    res = subprocess.run(
+        ["bash", str(SCRIPTS / "test_ci_changes.sh")], capture_output=True, text=True, env=_env()
+    )
+    assert res.returncode == 0, res.stdout + res.stderr
+    if shutil.which("actionlint"):
+        tpl = SCRIPTS.parent / "templates" / "ci" / "github-actions.yml"
+        lint = subprocess.run(["actionlint", str(tpl)], capture_output=True, text=True)
+        assert lint.returncode == 0, lint.stdout
+
+
+def test_adopt_writes_the_ci_template_when_the_repo_has_no_ci(tmp_path: Path) -> None:
+    repo = _repo(tmp_path, "python")
+    (repo / ".github/workflows/ci.yml").unlink()
+    res = _adopt(repo)
+    assert res.returncode == 0, res.stderr
+    ci = (repo / ".github/workflows/ci.yml").read_text()
+    assert "STACK: python" in ci and "needs.changes.outputs" in ci
+    cfg = json.loads((repo / "sdlc.json").read_text())
+    assert cfg["ciCommands"]["lint"] and cfg["ciCommands"]["e2eTouched"]
+    # second run: the file is the repo's now, nothing is rewritten and no gap list is printed
+    ci_edit = ci.replace("SHARDS: '4'", "SHARDS: '2'")
+    (repo / ".github/workflows/ci.yml").write_text(ci_edit)
+    again = _adopt(repo)
+    assert (repo / ".github/workflows/ci.yml").read_text() == ci_edit
+    assert not any("CI:" in m for m in _sections(again.stdout)["MANUAL"])
+
+
+def test_adopt_prints_the_ci_gap_list_for_a_repo_with_its_own_ci(tmp_path: Path) -> None:
+    repo = _repo(tmp_path, "node")
+    before = (repo / ".github/workflows/ci.yml").read_text()
+    res = _adopt(repo)
+    manual = " ".join(_sections(res.stdout)["MANUAL"])
+    assert "Copy the `changes` and `check` jobs from" in manual
+    assert "github-actions.yml" in manual and "no job named `check`" in manual
+    assert (repo / ".github/workflows/ci.yml").read_text() == before
+
+
+def test_adopt_adds_missing_ci_path_keys_without_touching_values(tmp_path: Path) -> None:
+    repo = _repo(tmp_path, "node")
+    assert _adopt(repo).returncode == 0
+    cfg = json.loads((repo / "sdlc.json").read_text())
+    for key in ("code", "config", "specs"):
+        cfg["ciPaths"].pop(key)
+    cfg["ciPaths"]["docs"] = ["mine/*"]
+    cfg["ciCommands"]["lint"] = "make lint"
+    (repo / "sdlc.json").write_text(json.dumps(cfg))
+    subprocess.run(["git", "add", "."], cwd=repo, check=True, env=_env())
+    res = _adopt(repo)
+    assert any("ciPaths gained code, config, specs" in w for w in _sections(res.stdout)["WROTE"])
+    got = json.loads((repo / "sdlc.json").read_text())
+    assert got["ciPaths"]["docs"] == ["mine/*"] and got["ciCommands"]["lint"] == "make lint"
+    assert got["ciPaths"]["code"] and got["ciPaths"]["specs"]
+
+
+KIT = re.search(r"^  version:\s*(\S+)", (SCRIPTS.parent / "SKILL.md").read_text(), re.M).group(1)
+
+
+def _stamp(repo: Path, value: str | None) -> None:
+    cfg = json.loads((repo / "sdlc.json").read_text())
+    cfg.pop("sdlcVersion", None)
+    if value:
+        cfg["sdlcVersion"] = value
+    (repo / "sdlc.json").write_text(json.dumps(cfg))
+    subprocess.run(["git", "add", "."], cwd=repo, check=True, env=_env())
+
+
+def test_adopt_stamps_the_kit_version_on_a_fresh_repo(tmp_path: Path) -> None:
+    repo = _repo(tmp_path, "node")
+    assert _adopt(repo).returncode == 0
+    assert json.loads((repo / "sdlc.json").read_text())["sdlcVersion"] == KIT
+
+
+@pytest.mark.parametrize("old", [None, "3.0.0", "3.2.0"])
+def test_upgrade_stamps_and_lists_the_manual_migrations_since_the_old_stamp(
+    tmp_path: Path, old: str | None
+) -> None:
+    repo = _repo(tmp_path, "node")
+    assert _adopt(repo).returncode == 0
+    _stamp(repo, old)
+    res = _adopt(repo, "--upgrade")
+    out = _sections(res.stdout)
+    assert json.loads((repo / "sdlc.json").read_text())["sdlcVersion"] == KIT
+    assert any(f"sdlcVersion {old or 'none'} -> {KIT}" in w for w in out["WROTE"])
+    manual = " ".join(out["MANUAL"])
+    assert f"upgrade {KIT}" in manual
+    assert ("upgrade 3.2.0" in manual) == (old in (None, "3.0.0"))
+
+
+def test_upgrade_with_the_current_stamp_changes_nothing(tmp_path: Path) -> None:
+    repo = _repo(tmp_path, "node")
+    assert _adopt(repo).returncode == 0
+    res = _adopt(repo, "--upgrade")
+    assert not any("sdlcVersion" in w for w in _sections(res.stdout)["WROTE"])
+    assert not any(m.startswith("upgrade ") for m in _sections(res.stdout)["MANUAL"])
+
+
+def test_upgrade_does_not_stamp_a_repo_newer_than_the_kit(tmp_path: Path) -> None:
+    repo = _repo(tmp_path, "node")
+    assert _adopt(repo).returncode == 0
+    _stamp(repo, "99.0.0")
+    res = _adopt(repo, "--upgrade")
+    assert json.loads((repo / "sdlc.json").read_text())["sdlcVersion"] == "99.0.0"
+    assert "newer than this kit" in " ".join(_sections(res.stdout)["MANUAL"])
+
+
+def test_sdlc_version_line_for_missing_older_equal_and_newer(tmp_path: Path) -> None:
+    repo = _repo(tmp_path, "node")
+    assert _adopt(repo).returncode == 0
+    script = SCRIPTS.parent / "templates" / "scripts" / "sdlc_version.py"
+
+    def line(stamp: str | None) -> str:
+        _stamp(repo, stamp)
+        return subprocess.run(
+            [sys.executable, str(script), str(repo)], capture_output=True, text=True, env=_env()
+        ).stdout.strip()
+
+    assert line(None).startswith(
+        f"This repo runs sdlc-run none; the kit is {KIT}. Run `adopt --upgrade`"
+    )
+    older = line("3.0.0")
+    assert "runs sdlc-run 3.0.0" in older and "changes: " in older and "3.2.0:" in older
+    assert line(KIT) == ""
+    assert "newer than the installed kit" in line("99.0.0") and "Update the omr-dev plugin" in line(
+        "99.0.0"
+    )
+
+
+def test_blueprint_excerpt_is_a_real_excerpt_of_the_template() -> None:
+    """The YAML in ci-blueprint.md must be lines of templates/ci/github-actions.yml, not a copy
+    that drifts: every line that is not an ellipsis comment appears in the template."""
+    text = (SCRIPTS.parent / "references" / "ci-blueprint.md").read_text()
+    block = re.search(r"```yaml\n(.*?)```", text, re.S).group(1)
+    template = (SCRIPTS.parent / "templates" / "ci" / "github-actions.yml").read_text().splitlines()
+    for line in block.splitlines():
+        if line.strip() in ("", "# …") or line.strip().startswith("# checkout and the stack"):
+            continue
+        assert line in template, line
+
+
+def _tree(repo: Path) -> dict[str, bytes | None]:
+    """Every path in the repo outside .git (directories too, as None) with its bytes."""
+    out: dict[str, bytes | None] = {}
+    for p in sorted(repo.rglob("*")):
+        rel = p.relative_to(repo)
+        if rel.parts[0] == ".git":
+            continue
+        out[str(rel)] = p.read_bytes() if p.is_file() else None
+    return out
+
+
+def _upgrade_fixture(tmp_path: Path) -> Path:
+    """An adopted repo whose kit-owned files differ from the kit's copies, a flat archive that a
+    plain adopt would re-nest, an old stamp and checks that a plain adopt would rewrite."""
+    repo = _repo(tmp_path, "node")
+    assert _adopt(repo).returncode == 0
+    fm = (
+        "---\nlinear: X-1\ntype: plan\nchange: %s\ndesign: null\nauthor: t@t\n"
+        "status: approved\ncreated: 2026-08-11\narchived_at: 2026-08-12\n---\n\n# Plan\n"
+    )
+    flat = repo / "changes" / "archive" / "2026-08-11-X-1-old"
+    flat.mkdir(parents=True)
+    (flat / "plan.md").write_text(fm % flat.name)
+    for rel in ("scripts/verify_gate.py", "docs/sdlc.md", "tests/sdlc.test.ts", "REVIEW.md"):
+        f = repo / rel
+        f.parent.mkdir(parents=True, exist_ok=True)
+        f.write_text((f.read_text() if f.exists() else "") + "\n# the repo's own edit\n")
+    (repo / ".claude/hooks/gate-bash.sh").write_text("#!/bin/sh\n# hand-tuned\n")
+    cfg = json.loads((repo / "sdlc.json").read_text())
+    cfg["sdlcVersion"] = "3.0.0"
+    cfg.pop("ciCommands")
+    cfg["ciPaths"].pop("code")
+    cfg["checks"]["milestone"] = ["pnpm test:e2e --repeat-each 3"]
+    (repo / "sdlc.json").write_text(json.dumps(cfg, indent=2) + "\n")
+    subprocess.run(["git", "add", "."], cwd=repo, check=True, env=_env())
+    subprocess.run(
+        ["git", "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "drift"],
+        cwd=repo,
+        check=True,
+        env=_env(),
+    )
+    return repo
+
+
+def test_upgrade_writes_only_sdlc_json_and_lists_the_rest_for_review(tmp_path: Path) -> None:
+    repo = _upgrade_fixture(tmp_path)
+    before = _tree(repo)
+    before_cfg = json.loads((repo / "sdlc.json").read_text())
+    res = _adopt(repo, "--upgrade")
+    assert res.returncode == 0, res.stderr
+    after = _tree(repo)
+    changed = sorted(
+        k for k in set(before) | set(after) if before.get(k, "gone") != after.get(k, "gone")
+    )
+    assert changed == ["sdlc.json"], changed
+    cfg = json.loads((repo / "sdlc.json").read_text())
+    assert cfg["sdlcVersion"] == KIT and cfg["ciCommands"] and cfg["ciPaths"]["code"]
+    # no value the repo set is touched
+    assert (
+        cfg["checks"] == before_cfg["checks"] and cfg["kitTemplates"] == before_cfg["kitTemplates"]
+    )
+    out = _sections(res.stdout)
+    assert all(w.startswith("sdlc.json") for w in out["WROTE"]), out["WROTE"]
+    manual = "\n".join(out["MANUAL"])
+    for rel in (
+        "scripts/verify_gate.py",
+        "docs/sdlc.md",
+        "tests/sdlc.test.ts",
+        ".claude/hooks/gate-bash.sh",
+    ):
+        assert f"review diff: {rel} differs from the kit's copy" in manual, rel
+    assert "changes/archive/2026-08-11-X-1-old" in manual and "layout migration" in manual
+    # git sees the one modified file and nothing new
+    status = subprocess.run(
+        ["git", "status", "--porcelain"], cwd=repo, capture_output=True, text=True, env=_env()
+    ).stdout
+    assert status.split() == ["M", "sdlc.json"], status
+
+
+def test_upgrade_dry_run_writes_nothing(tmp_path: Path) -> None:
+    repo = _upgrade_fixture(tmp_path)
+    before = _tree(repo)
+    assert _adopt(repo, "--upgrade", "--dry-run").returncode == 0
+    assert _tree(repo) == before
+
+
+def test_upgrade_replace_shows_the_diff_and_applies_only_the_named_file(tmp_path: Path) -> None:
+    repo = _upgrade_fixture(tmp_path)
+    before = _tree(repo)
+    shown = _adopt(repo, "--upgrade", "--replace", "scripts/verify_gate.py", "--dry-run")
+    assert "the repo's own edit" in shown.stdout and "-#-#- DIFF -#-#-" in shown.stdout
+    assert _tree(repo) == before
+    res = _adopt(repo, "--upgrade", "--apply", "--replace", "scripts/verify_gate.py")
+    assert res.returncode == 0, res.stderr
+    kit = (ADOPT.parents[1] / "templates/scripts/verify_gate.py").read_bytes()
+    assert (repo / "scripts/verify_gate.py").read_bytes() == kit
+    after = _tree(repo)
+    changed = sorted(
+        k for k in set(before) | set(after) if before.get(k, "gone") != after.get(k, "gone")
+    )
+    assert changed == ["scripts/verify_gate.py", "sdlc.json"], changed
+    assert "verify_gate.py (replaced" in " ".join(_sections(res.stdout)["WROTE"])
+
+
+def test_upgrade_refuses_a_repo_that_is_not_adopted(tmp_path: Path) -> None:
+    repo = _repo(tmp_path, "node")
+    res = _adopt(repo, "--upgrade")
+    assert res.returncode != 0 and "not adopted" in res.stderr

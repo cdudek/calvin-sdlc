@@ -67,7 +67,7 @@ table, which is what makes `F1` traceable from `facts.md` through the test to th
 
 1. Read `sdlc.json` with the user: `linear.team` / `project`, `verify`, `verifyStop`,
    `planGate`, `testGlobs`, `prototypeDirs`, `feedback`, `blocked`, `codeowners`, `tiers`,
-   `claude`, `keep`, and `ciPaths` (adopt writes the stack's default once; edit the folder
+   `claude`, `keep`, and `ciPaths` (adopt writes the stack's default once and adds keys a newer kit introduced; edit the folder
    names to the repo's own, `ci-blueprint.md`). Read `.github/tiers.json` (skip it with
    `tiers: false`): the `ask` globs must name what really hurts here (migrations, integrations that write, cluster, workflows, deps, the rules).
 2. Add the tools target (`toolsCommand`) — Makefile `sdlc-tools` or package.json
@@ -85,14 +85,22 @@ table, which is what makes `F1` traceable from `facts.md` through the test to th
    `tiers: false`, arm auto-merge on it like on any other PR.
 7. The CLAUDE.md section it appended states the process and `/goal`; if the repo's
    CLAUDE.md said "ask before merging", change it to "the tier decides".
-8. **CI.** `adopt` never edits the repo's own `ci.yml`. Compare it with `references/ci-blueprint.md`
-   and recommend each gap to the engineer: every step gated on the PR's changed paths (docs run nothing) behind one `check` status,
-   E2E against the built artifact, sharded, one retry, full E2E only where A5 says, and a
-   ruleset that gives `project/*` (and `milestone/*` with `delivery: "feature-prs"`) the same
-   required `check`. A repo with no CI gets the blueprint written. Only the `node` and
-   `python` presets exist; for Ruby, Rails, Rust, Kotlin or Scala pick the nearest preset and
-   replace `checks.*` and `tests` with the row from
-   `../e2e-test-run/references/suite-speed-and-reliability.md` section K.
+8. **CI.** A repo with no CI gets `templates/ci/github-actions.yml` written to
+   `.github/workflows/ci.yml` with `STACK` and the default branch set (only the `node` and
+   `python` presets exist; for Ruby, Rails, Rust, Kotlin or Scala set `STACK` by hand and take
+   `ciCommands` from `templates/ci-commands.json`, section K). A repo with its own CI keeps it:
+   adopt prints the gap list (no single `check` job, steps not gated on `ciPaths`,
+   `paths-ignore`, E2E not sharded) and "copy the `changes` and `check` jobs from
+   `templates/ci/github-actions.yml`". Recommend each gap to the engineer; the setup steps are
+   the top of `ci-blueprint.md`. Add a ruleset that gives `project/*` (and `milestone/*` with
+   `delivery: "feature-prs"`) the same required `check`.
+9. **Version.** adopt stamps `sdlcVersion` in `sdlc.json`. `adopt --upgrade` on a repo with an
+   older stamp (or none) is the safe path: it adds the missing `sdlc.json` keys with the stack's
+   defaults, never overwriting a value, stamps the version, and writes nothing else and moves no
+   folder. Every file that differs from the kit's copy (hooks, workflows, `scripts/*.py`,
+   `docs/sdlc.md`, the guardrail test) is listed as `review diff`, with the changelog's manual
+   migrations since the stamp. `adopt --upgrade --replace <file>` shows one file's diff;
+   `--apply --replace <file>` replaces it. A plain `adopt` refreshes all the copies at once.
 
 ## A repo that already ran the old `goals/` skill
 

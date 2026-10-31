@@ -382,3 +382,40 @@ def test_unrelated_session_does_not_enable_owner_marks(tmp_path: Path) -> None:
     assert _gate(repo, "milestone", ID).returncode == 0
     report = json.loads((asks.parent / "verify/report.json").read_text())
     assert [c["name"] for c in report["checks"]] == ["check-1"]
+
+
+def _warn_for(tmp_path: Path, stamp: str | None, kit: str) -> tuple[str, str]:
+    repo = _repo(tmp_path, ["true"])
+    cfg = json.loads((repo / "sdlc.json").read_text())
+    if stamp:
+        cfg["sdlcVersion"] = stamp
+    (repo / "sdlc.json").write_text(json.dumps(cfg))
+    _git(repo, "add", ".")
+    _git(repo, "commit", "-qm", "stamp", "--allow-empty")
+    _approve(repo)
+    r = subprocess.run(
+        [sys.executable, str(GATE), "feature", ID],
+        cwd=repo,
+        capture_output=True,
+        text=True,
+        env={**_env(), "SDLC_KIT_VERSION": kit},
+    )
+    warns = [ln for ln in r.stdout.splitlines() if ln.startswith("WARN")]
+    return (warns[0] if warns else ""), _last(r)
+
+
+@pytest.mark.parametrize(
+    ("stamp", "kit", "expect"),
+    [
+        (None, "3.3.0", "runs sdlc-run none; the kit is 3.3.0"),
+        ("3.2.0", "3.3.0", "runs sdlc-run 3.2.0; the kit is 3.3.0"),
+        ("3.3.0", "3.3.0", ""),
+        ("3.4.0", "3.3.0", "newer than the installed kit 3.3.0"),
+    ],
+)
+def test_a_stale_stamp_warns_and_never_changes_the_verdict(
+    tmp_path: Path, stamp: str | None, kit: str, expect: str
+) -> None:
+    warn, last = _warn_for(tmp_path, stamp, kit)
+    assert last.startswith("VERIFY PASS feature")
+    assert (expect in warn) if expect else (warn == "")
