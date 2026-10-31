@@ -40,6 +40,10 @@ jobs:
       deploy: ${{ steps.f.outputs.deploy }}
       full: ${{ steps.f.outputs.full }}
     steps:
+      - uses: actions/checkout@v4 # first-party; only sdlc.json is needed
+        with:
+          sparse-checkout: sdlc.json
+          sparse-checkout-cone-mode: false
       - id: f
         env:
           GH_TOKEN: ${{ github.token }}
@@ -48,35 +52,35 @@ jobs:
           BASE: ${{ github.base_ref }}
           HEAD: ${{ github.head_ref }}
           DEFAULT: ${{ github.event.repository.default_branch }}
-          # The lists the repo edits (shell globs; * also crosses /). Fill them from the table below.
-          DOCS: "changes/* docs/* plans/* .claude/plans/* *.md"
-          ALL: ".github/workflows/* sdlc.json package-lock.json pnpm-lock.yaml yarn.lock"
-          LINT: "src/* app/* e2e/* *.test.*"
-          UNIT: "src/* app/* *.test.*"
-          BUILD: "src/* app/* public/* Dockerfile"
-          E2E: "src/* app/* public/* e2e/*"
-          DEPLOY: "src/* app/* public/* Dockerfile deploy/*"
         run: |
           set -f # keep the globs literal
+          # The lists live in sdlc.json "ciPaths" (shell globs; * also crosses /). jq is on every runner.
+          list() { jq -r "(.ciPaths$1 // []) | join(\" \")" sdlc.json; }
           hit() { for g in $2; do case "$1" in $g) return 0 ;; esac; done; return 1; }
-          for s in lint unit build e2e deploy; do eval "$s=false"; done
+          STEPS="lint unit build e2e deploy"
+          DOCS=$(list .docs); ALL=$(list .all)
+          for s in $STEPS; do
+            eval "inc_$s=\"\$(list .$s.include)\" exc_$s=\"\$(list .$s.exclude)\""
+            eval "$s=false"
+          done
+          everything() { for s in $STEPS; do eval "$s=true"; done; }
           if [ -z "$PR" ]; then
-            for s in lint unit build e2e deploy; do eval "$s=true"; done # push to the default branch
+            everything # push to the default branch
           else
             for f in $(gh pr diff "$PR" --name-only); do # fails closed on a diff too large to list
               hit "$f" "$DOCS" && continue
-              if hit "$f" "$ALL"; then lint=true; unit=true; build=true; e2e=true; deploy=true; continue; fi
+              if hit "$f" "$ALL"; then everything; continue; fi
               known=false
-              hit "$f" "$LINT" && lint=true && known=true
-              hit "$f" "$UNIT" && unit=true && known=true
-              hit "$f" "$BUILD" && build=true && known=true
-              hit "$f" "$E2E" && e2e=true && known=true
-              hit "$f" "$DEPLOY" && deploy=true && known=true
-              # a file no list knows is code you forgot to list: run everything
-              $known || { lint=true; unit=true; build=true; e2e=true; deploy=true; }
+              for s in $STEPS; do
+                eval "inc=\"\$inc_$s\" exc=\"\$exc_$s\""
+                # on a step when it matches the include and not the exclude
+                if hit "$f" "$inc"; then known=true; hit "$f" "$exc" || eval "$s=true"; fi
+              done
+              # a file no include knows is code you forgot to list: run everything
+              $known || everything
             done
           fi
-          for s in lint unit build e2e deploy; do eval "echo $s=\$$s" >> "$GITHUB_OUTPUT"; done
+          for s in $STEPS; do eval "echo $s=\$$s" >> "$GITHUB_OUTPUT"; done
           case "$BASE:$HEAD" in
             "$DEFAULT":*|project/*:*|*:milestone/*) echo "full=true" >> "$GITHUB_OUTPUT" ;;
             *) echo "full=false" >> "$GITHUB_OUTPUT" ;;
@@ -136,16 +140,17 @@ jobs:
 ```
 
 - **A change that touches only docs runs nothing.** Every flag is false, every job skips and
-  `check` still reports success. `DOCS` is the one list a repo edits for that: `*.md`,
-  `docs/**`, `changes/**`, plans.
+  `check` still reports success. `ciPaths.docs` is the one list a repo edits for that: `*.md`,
+  `docs/*`, `changes/*`, plans.
 - **A YAML counts as docs only if nothing reads it:** no build, test, deploy or app code
-  loads it. A YAML a script or the app does read is code. Always code, never in `DOCS`:
+  loads it. A YAML a script or the app does read is code. Always code, never in `ciPaths.docs`:
   `.github/workflows/**`, app and framework config, OpenAPI specs the code generates from,
   k8s, helm and terraform YAML, `sdlc.json`, lockfiles. A `docs/` folder that feeds the site and
-  a `README.md` embedded in a package are read by the build: take them out of `DOCS`.
-- **`ALL`** (lockfiles, CI workflows, `sdlc.json`) triggers every step. A file in neither
-  `DOCS`, `ALL` nor a step list also triggers every step, so a forgotten path costs minutes,
-  never a missed check.
+  a `README.md` embedded in a package are read by the build: take them out of `ciPaths.docs`.
+- **`ciPaths.all`** (lockfiles, CI workflows, `sdlc.json`) triggers every step. A file that
+  matches no step's `include`, and is not in `docs` or `all`, also triggers every step, so a
+  forgotten path costs minutes, never a missed check. A file that matches an `include` and the
+  same step's `exclude` simply skips that step.
 - **`full`** is A5 and gates only the E2E scope: true for a PR into the default branch, a PR
   into `project/*`, and a PR whose head is `milestone/*`. A feature PR into `milestone/*` is
   false: its `e2e` job (when the flag is on) runs only the specs it changed (section K,
@@ -153,11 +158,35 @@ jobs:
 - **A pass on retry** is reported in the job summary and does not fail a feature PR; on a
   full run (`FULL=true`) it does (`failOnFlakyTests` or the stack's equivalent). Section K.
 
-### Which changed paths trigger which step
+### `ciPaths` in sdlc.json: the one list per repo
 
-Each row's steps get that row's globs. Union the rows into the `LINT`, `UNIT`, `BUILD`, `E2E`
-and `DEPLOY` lists above; adapt folder names to the repo. Lockfiles, `.github/workflows/**`
-and `sdlc.json` are `ALL` in every stack.
+`sdlc.json` (not under `checks`, so a repo edits it without the lock) holds the lists. The
+`changes` job above reads them with `jq`; the agents read the same lists to pick "touched
+tests" (`../../e2e-test-run/references/suite-speed-and-reliability.md` section K). Shell
+globs, `*` also crosses `/`.
+
+```json
+"ciPaths": {
+  "docs": ["changes/*", "docs/*", "plans/*", ".claude/plans/*", "*.md"],
+  "all": [".github/workflows/*", "sdlc.json", "package-lock.json", "pnpm-lock.yaml"],
+  "lint": { "include": ["src/*", "app/*", "e2e/*", "test/*", "*.test.*"], "exclude": ["public/*", "*.png", "*.svg", "*/generated/*"] },
+  "unit": { "include": ["src/*", "app/*", "test/*", "*.test.*"], "exclude": ["e2e/*", "*.css", "public/*"] },
+  "build": { "include": ["src/*", "app/*", "public/*", "Dockerfile"], "exclude": ["e2e/*", "test/*", "*.test.*"] },
+  "e2e": { "include": ["src/*", "app/*", "public/*", "e2e/*"], "exclude": ["test/*", "*.test.*"] },
+  "deploy": { "include": ["src/*", "app/*", "public/*", "Dockerfile", "deploy/*"], "exclude": ["e2e/*", "test/*", "*.test.*"] }
+}
+```
+
+- **A step runs** for a file that matches its `include` and not its `exclude`.
+- **Defaults per stack** (TypeScript, Python, Rust, Rails, Kotlin, Scala) are in
+  `templates/ci-paths.json`; `adopt` copies the stack's block into `sdlc.json` once and never
+  overwrites it. Edit the folder names to the repo's own.
+- **Excludes that are safe:** tests of the other kind (E2E out of unit, unit out of E2E and
+  build), assets (`*.css`, images, `public/*`) out of lint and unit, generated code and the
+  schema dump out of lint. **Never excluded:** migrations (`db/migrate/*`) trigger unit, e2e
+  and deploy; a lockfile or workflow is `all`.
+
+What the defaults encode:
 
 | Stack | Changed path | Steps |
 |---|---|---|
@@ -184,6 +213,7 @@ and `sdlc.json` are `ALL` in every stack.
 | Scala | `src/main/**` | lint unit build e2e deploy |
 | | `src/test/**` | lint unit |
 | | `build.sbt`, `project/*.sbt`, `Dockerfile` | build e2e deploy |
+
 
 ## A6 — interior branches wear the same required status
 

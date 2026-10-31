@@ -323,6 +323,7 @@ permalinks; local laptop paths are refused.
 | `delivery` | skill | `one-go` (default): one `/goal` builds every feature as commits on the milestone branch and closes the milestone; `feature-prs`: one PR per feature into the milestone |
 | `goal` | skill | `{runTurns, featureTurns, milestoneTurns}`; default 150, 40 and 30 |
 | `languages` | skill, checks | the languages the product ships; default `["en"]` |
+| `ciPaths` | CI, agents | `{docs, all, lint, unit, build, e2e, deploy}`: which changed files switch which CI step on (`include`/`exclude` globs per step); not under `checks`, so no lock; defaults per stack in `templates/ci-paths.json`; `references/ci-blueprint.md` |
 | `responsiveTier` | milestone stage | the `responsive-audit` matrix tier; default `full` |
 | `ux` | skill, hook | `on` or `off`; `off` skips the UX plan and UX checks (python preset default) |
 | `tracker` | skill | `{kind: linear\|github\|beads\|none, …ids}`; the old `linear` key means `linear`; `references/trackers.md` |
