@@ -60,7 +60,7 @@ Gate: the owner reviews Storybook.
 
 ## Stage 4: the UX rules, in each code repo
 
-Every repo that has screens gets `docs/ux/`. The ux skills read and write these files, so they live with the code. Examples: `examples/heydiff/web/docs/ux/` and `examples/heydiff/desktop/docs/ux/`.
+Every repo that has screens gets `docs/ux/`. The ux skills read and write these files, so they live with the code. Examples: `examples/heydiff/web/docs/ux/` and `examples/snapmark/docs/ux/`.
 
 - `setup.md`: product, audience, design rules, screens, how to run the app, what is read only. Written by `cct:ux-init`.
 - `owner-words.md`: the owner's own words about the product, quoted and dated.

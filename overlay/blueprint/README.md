@@ -5,7 +5,7 @@ Working CI/CD and project setup copied from the HeyDiff repos on 2026-10-31. Cop
 | Folder | From | What it shows |
 | --- | --- | --- |
 | `web-nextjs-cloud-run/` | heydiff-web | Next.js in Docker on Cloud Run: images, CI, previews, deploy, release, rollback |
-| `desktop-electron/` | heydiff-desktop | Electron: CI, signed and notarized macOS release, semantic-release |
+| `desktop-electron/` | snapmark-mac (cdudek/snapmark-mac) | Electron: CI, signed and notarized macOS release, semantic-release |
 | `chrome-extension-wxt/` | heydiff-chrome | WXT extension: scripts, config, CI |
 | `design-system-kit-heroui/` | heydiff-kit | npm workspaces publishing tokens, ui (HeroUI v3) and contracts to GitHub Packages |
 

@@ -6,11 +6,9 @@ build: main at v0.9.0
 source: UX audit 2026-09-28, evaluators e1–e8 (finding IDs are the evaluators' own, renumbered at the merge)
 ---
 
-# HeyDiff sitemap
+# Snapmark sitemap
 
-_Renamed 2026-10-28: the product is HeyDiff ([decision](https://github.com/pokbytes/heydiff-context/blob/main/strategy/2026-10-28-name-heydiff.md)). Until the Mac app's new-ids change ships, the app itself still shows Snapmark (app and menu names, window titles, labels, `~/Documents/Snapmark`), so labels quoted from the app keep that name._
-
-HeyDiff for Mac has no pages or routes. It has surfaces, reached from the menu bar icon, three global keys and
+Snapmark has no pages or routes. It has surfaces, reached from the menu bar icon, three global keys and
 each other. This file shows how they are reached today (v0.9.0) and how the proposed interaction
 guidelines would arrange them.
 
@@ -28,7 +26,7 @@ ENTRY POINTS
 ├── ⌃⇧5  Capture Options        ──► CAPTURE BAR (brought forward if open; nothing while a capture runs)
 ├── ⌃⇧3  Capture Last Area
 ├── ⌃⇧N  New Session
-└── Relaunching HeyDiff from Applications or Spotlight: nothing happens (F217)
+└── Relaunching Snapmark from Applications or Spotlight: nothing happens (F217)
 
 MENU (rebuilt on every open; rows appear and disappear with state: 12 to 17 top-level rows)
 ├── [Restart to Update to <v>]              only when an update waits ──► all windows close, no question (F212)
@@ -38,7 +36,7 @@ MENU (rebuilt on every open; rows appear and disappear with state: 12 to 17 top-
 ├── Capture Last Area   ⌃⇧3   sub-line "1280 × 720" or "First time: drag the area"
 │     ├── no area yet, or its display is gone ──► Area picker (display under the pointer, over full-screen apps)
 │     │        drag ≥ 8 × 8, release ──► captured at once ──► Editor · click or sliver ──► starts over · Esc ──► nothing
-│     └── area set ──► captured at once (with any HeyDiff window that is over it, F033/F066) ──► Editor
+│     └── area set ──► captured at once (with any Snapmark window that is over it, F033/F066) ──► Editor
 ├── Capture Options…  ⌃⇧5      ──► CAPTURE BAR (was: Capture Options ▸ four items)
 ├── [Reopen Last Discarded]                  only when Discarded holds something
 │     ├── a closed capture ──► Editor with its marks ("Add to session"); its old session becomes current (F010)
@@ -100,7 +98,7 @@ SETTINGS WINDOW   title names the tab; one window, brought forward if open; read
 AREA PICKER       see-through, display under the pointer, every Space; hint "Drag over the area to capture.
                   ⌃⇧3 captures it again each time. Esc cancels."
 KEYBOARD SHORTCUTS WINDOW   "Keyboard Shortcuts", src/shortcuts.html, 980 × 680, read-only, no Dock icon; ⌘/ from any
-                  HeyDiff window or Settings ▸ Shortcuts ▸ Show All Shortcuts; one window; Esc or ⌘W closes it;
+                  Snapmark window or Settings ▸ Shortcuts ▸ Show All Shortcuts; one window; Esc or ⌘W closes it;
                   two columns: "Other keys" by where they work (Anywhere, Capture bar, Snapmark windows, Editor,
                   Session window) · "Editor tools" (13 rows, keys of the current mode)
 NOTIFICATIONS (native)   the only channel for copies, New Session, failures; clicking only "… is no longer in …" does something
@@ -109,7 +107,7 @@ NATIVE PANELS AND DIALOGS   Sessions Folder…, Older Sessions…, Reopen Discar
 FINDER            session folder = session.md · img/NNN.png · img/NNN/ (parts of a tall screenshot) · .edit/ (clean
                   originals, also of redacted images, F192) ·
                   <name>.pdf · <name>.zip ; sessions folder/.discarded/
-FIRST LAUNCH      no window, no hint; Screen Recording asked at the first capture, which is wallpaper until HeyDiff restarts
+FIRST LAUNCH      no window, no hint; Screen Recording asked at the first capture, which is wallpaper until Snapmark restarts
 ```
 
 ### Named or reachable two ways
@@ -151,9 +149,9 @@ ENTRY POINTS
 ├── Global keys: capture only, on neighbouring keys, changeable (chosen 2026-10-25: ⌃⇧3, ⌃⇧4, ⌃⇧5 mirror macOS's ⇧⌘3, ⇧⌘4, ⇧⌘5)
 │     ├── Capture Screenshot
 │     └── Capture Last Area
-├── ⌘/ in any HeyDiff window ──► Keyboard Shortcuts
+├── ⌘/ in any Snapmark window ──► Keyboard Shortcuts
 ├── Drop an image on the menu bar icon, or paste ──► Editor on that image
-└── Relaunching HeyDiff ──► opens its menu
+└── Relaunching Snapmark ──► opens its menu
 
 FIRST LAUNCH ──► the menu opens once: "Snapmark lives here. <keys> capture."
 FIRST CAPTURE without Screen Recording ──► small window: [Open System Settings] [Quit & Reopen] (no wallpaper capture)
@@ -225,4 +223,4 @@ FINDER            session folder = session.md · img/ · exports with a date in 
 | Esc's last step discards                          | Esc stops at Select; ⌘W discards                   | Keyboard and focus                            |
 | silent Add to session, Discard, Remove, failures  | a sign on the icon, Undo bars, failures in place   | Feedback and notifications                    |
 | Keyboard Shortcuts under Settings                 | ⌘/ from every window, top level in the menu        | First run and help                            |
-| stock Electron app menu                           | HeyDiff's own app menu                             | Platform conventions                          |
+| stock Electron app menu                           | Snapmark's own app menu                            | Platform conventions                          |

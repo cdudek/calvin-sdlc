@@ -17,6 +17,7 @@ One repo per product, all checked out under `~/projects/heydiff/`, each folder n
 - `strategy/roadmap.md`: the agreed milestones (M1 to M6).
 - `strategy/2026-10-28-name-heydiff.md`: the name HeyDiff, the story behind it, why the product exists, the positioning, and what the rename changes.
 - `strategy/2026-10-28-hosting-and-data-residency.md`: compute in Belgium (europe-west1), Cloud Storage and BigQuery in the EU, scale to zero, deploy on merge to `main`.
+- `strategy/2026-10-31-pricing-display-and-tax.md`: prices incl. VAT for Europe and + tax elsewhere by IP country, built in release 2 with billing; Paddle or Stripe still open.
 - `strategy/2026-10-27-snapmark-online.md`: the team service (written as "Snapmark online"), with the owner's decisions in section 9.
 - `market/2026-10-25-pricing-research.md`: competitor prices and pricing options.
 - `market/2026-10-25-feature-comparison.md`: feature-by-feature comparison with competitors.

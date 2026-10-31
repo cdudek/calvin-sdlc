@@ -34,7 +34,7 @@
     "marked": "^18.1.1"
   },
   "author": "Calvin Dudek",
-  "repository": "github:pokbytes/snapmark-desktop",
+  "repository": "github:cdudek/snapmark-mac",
   "build": {
     "appId": "com.cdudek.snapmark",
     "afterPack": "scripts/after-pack.cjs",

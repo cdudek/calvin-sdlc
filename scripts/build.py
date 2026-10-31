@@ -16,6 +16,7 @@ KIT = TMP / "plugins"
 C = Path.home() / ".claude/plugins/cache"
 HOME = Path.home()
 HD = HOME / "projects/heydiff"
+SNAP = HOME / "projects/ai-feedback-editor"  # Snapmark, cdudek/snapmark-mac: its own product, not HeyDiff
 P = "cct"
 
 shutil.rmtree(OUT, ignore_errors=True)
@@ -246,7 +247,7 @@ git_files(HD / "heydiff-web", "origin/main", [
     "scripts/docker-smoke.sh", "scripts/image-tags.sh", "scripts/dev-db.sh", "scripts/sdlc_status.py",
     "scripts/verify_gate.py", "scripts/marks.py", "scripts/design_index.py",
 ], BP / "web-nextjs-cloud-run")
-git_files(HD / "heydiff-desktop", "origin/main", [
+git_files(SNAP, "origin/main", [
     ".github", ".releaserc.json", "snapmark-app/scripts/electron-builder.sh", "snapmark-app/package.json",
     "snapmark-app/tsconfig.json", "sdlc.json",
 ], BP / "desktop-electron")
@@ -266,10 +267,10 @@ git_files(HD / "heydiff-context", "origin/main", [
     "brand/v4/heydiff-brand-guide-v4/tokens",
 ], EX / "context")
 git_files(HD / "heydiff-web", "origin/main", ["docs/ux"], EX / "web")
-git_files(HD / "heydiff-desktop", "origin/main", [
+git_files(SNAP, "origin/main", [
     "docs/ux/setup.md", "docs/ux/interaction-guidelines.md", "docs/ux/glossary-proposal.md", "docs/ux/owner-words.md",
     "docs/ux/sitemap.md", "docs/ux/decisions.md", ".impeccable/config.json",
-], EX / "desktop")
+], OUT / "examples/snapmark")
 shutil.copy2(HOME / "Downloads/HeyDiff Brand Guide-selection.pdf", EX / "heydiff-brand-guide-selection.pdf")
 print("blueprint + examples copied")
 

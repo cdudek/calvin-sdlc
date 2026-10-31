@@ -34,4 +34,4 @@ Agreed with the owner on 2026-10-25, from the mockups in `design-explorations/20
 
 ## M6 — Selling it (replaced 2026-10-27)
 
-Replaced by the online-service decisions (`2026-10-27-snapmark-online.md`, section 9): the Mac app and the extension are free; money comes from online seats ($4 per seat per month billed yearly, $6 monthly). The earlier plan was $12.99 one-off through a merchant of record, with licence terms naming the update period (BGB §327h) and download consent (§356(6)); none of that is needed for a free app. Where online billing sits in the order of milestones is still open.
+Replaced by the online-service decisions (`2026-10-27-snapmark-online.md`, section 9): the Mac app and the extension are free; money comes from online seats ($4 per seat per month billed yearly, $6 monthly). The earlier plan was $12.99 one-off through a merchant of record, with licence terms naming the update period (BGB §327h) and download consent (§356(6)); none of that is needed for a free app. Online billing and the pricing page ship in release 2 (`2026-10-31-pricing-display-and-tax.md`): Europe sees prices incl. VAT, everyone else + tax; Paddle or Stripe is decided there.

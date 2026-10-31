@@ -41,7 +41,7 @@
     "initiative": "",
     "project": "snap-bmr"
   },
-  "product": "HeyDiff",
+  "product": "Snapmark",
   "planGate": "owner",
   "feedback": ["docs/ux/owner-words.md"],
   "milestones": {

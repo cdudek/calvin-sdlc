@@ -1,6 +1,4 @@
-# HeyDiff glossary proposal
-
-_Renamed 2026-10-28: the product is HeyDiff ([decision](https://github.com/pokbytes/heydiff-context/blob/main/strategy/2026-10-28-name-heydiff.md)). Until the Mac app's new-ids change ships, the app itself still shows Snapmark (app and menu names, window titles, labels, `~/Documents/Snapmark`), so labels quoted from the app keep that name._
+# Snapmark glossary proposal
 
 Every term the product shows, where it appears, and the one word proposed for it. Rebuilt by the audit of
 2026-09-28 (v0.9.0) from agent 4's term × place table, with places and clashes added from evaluators 1, 2, 3, 5, 6,

@@ -7,11 +7,9 @@ build: v0.21.1
 change: 2026-10-26-interaction-guide-polish
 ---
 
-# How HeyDiff behaves
+# How Snapmark behaves
 
-_Renamed 2026-10-28: the product is HeyDiff ([decision](https://github.com/pokbytes/heydiff-context/blob/main/strategy/2026-10-28-name-heydiff.md)). Until the Mac app's new-ids change ships, the app itself still shows Snapmark (app and menu names, window titles, labels, `~/Documents/Snapmark`), so labels quoted from the app keep that name._
-
-This guide says how HeyDiff should feel and behave, in one place. A builder, human or agent, checks a screen against it. Every rule can be answered yes or no.
+This guide says how Snapmark should feel and behave, in one place. A builder, human or agent, checks a screen against it. Every rule can be answered yes or no.
 
 The owner accepted every rule and exception on 2026-10-26, and the rules added by change 2026-10-26-picked-designs at its plan gate the same day. A new rule starts as `(proposed)` and is not a promise until the owner accepts it.
 
@@ -25,10 +23,10 @@ The older, longer proposal for v0.9.0 is kept at `docs/ux/audits/2026-09-28/inte
 ## 1. How Snapmark should feel
 
 1. **Quiet and fast.** One chord does the common thing, with no question it could answer itself. Example: ⌃⇧4 captures the last area at once, with no picker and no dialog.
-2. **Never in the way of the screen.** HeyDiff is never in its own capture and never moves you to another Space. Example: the capture bar closes and waits 200 ms before the shot is taken.
+2. **Never in the way of the screen.** Snapmark is never in its own capture and never moves you to another Space. Example: the capture bar closes and waits 200 ms before the shot is taken.
 3. **A Mac app.** It uses macOS's keys, words and windows, so nothing has to be learned twice. Example: ⌃⇧3, ⌃⇧4 and ⌃⇧5 mirror macOS's ⇧⌘3, ⇧⌘4 and ⇧⌘5.
 4. **The agent reads what you mean.** Every mark and note says in words what it means. Example: a Cross reaches the agent as "remove this", not as red pixels to decode.
-5. **Nothing is lost.** Every way out can be undone or recovered, so HeyDiff rarely asks first. Example: ⌘W discards a screenshot to Discarded, where it stays for 7 days.
+5. **Nothing is lost.** Every way out can be undone or recovered, so Snapmark rarely asks first. Example: ⌘W discards a screenshot to Discarded, where it stays for 7 days.
 6. **It explains itself where you look.** Every icon tells its name and key on hover. Example: hovering the Box tool shows "Box (2 or ⌘2) · press again for Ellipse".
 
 ## 2. Rules
@@ -38,7 +36,7 @@ The older, longer proposal for v0.9.0 is kept at `docs/ux/audits/2026-09-28/inte
 - **CAP-1 (accepted).** ⌃⇧1 to ⌃⇧5 work from any app, Space or full-screen app, and never switch Spaces.
   - **Why:** Flow. A review keeps its rhythm only if capturing never pulls you out of the app.
   - **Today:** `src/keys.ts:6-13`; bar shown on every Space at `src/main.ts:446`.
-- **CAP-2 (accepted).** No HeyDiff window, bar, picker or counter ever appears in a capture.
+- **CAP-2 (accepted).** No Snapmark window, bar, picker or counter ever appears in a capture.
   - **Why:** Mental Model. A screenshot must show the screen as you saw it before you pressed the key.
   - **Today:** the bar closes, then waits 200 ms (capture bar ADR); content protection at `src/main.ts:352`.
 - **CAP-3 (accepted).** In the capture bar, keys 1–6 pick a mode in bar order and match the global digits: 1 New Area, 2 Window, 3 Full Screen, 4 Last Area, 5 Scrolling, 6 Record. Each mode shows its name and key under its icon. ↩ or ⌘↩ captures, Esc closes, ← → still move.
@@ -95,7 +93,7 @@ The older, longer proposal for v0.9.0 is kept at `docs/ux/audits/2026-09-28/inte
 - **EDT-7 (accepted).** Remove marks are always coral red (#e5484d). Highlight marks are always yellow (#facc15), whatever colour is picked.
   - **Why:** Law of Similarity. One colour keeps one meaning across every screenshot and session.
   - **Today:** `src/tools.ts:20-21` and `src/editor.ts:55`.
-- **EDT-8 (accepted).** Buttons and chrome use HeyDiff's own palette. Only marks use the picked colour.
+- **EDT-8 (accepted).** Buttons and chrome use Snapmark's own palette. Only marks use the picked colour.
   - **Why:** Von Restorff Effect. Marks stand out only if the interface does not compete with them.
   - **Today:** colour tokens in `src/editor.html`; owner's words, 2026-10-25.
 
@@ -140,7 +138,7 @@ The older, longer proposal for v0.9.0 is kept at `docs/ux/audits/2026-09-28/inte
 - **KEY-1 (accepted).** Global keys are ⌃⇧ plus macOS's screenshot digits: ⌃⇧1 Capture New Area…, ⌃⇧2 Capture One-Shot…, ⌃⇧3 Capture Full Screen (every display, at once), ⌃⇧4 Capture Last Area, ⌃⇧5 capture bar. ⌃⇧N starts a new session and forgets the area.
   - **Why:** Jakob's Law. The digits are the ones the owner's fingers already know.
   - **Today:** `src/keys.ts:6-13`; ADR "Keys follow macOS".
-- **KEY-2 (accepted).** In every HeyDiff window, Mac keys keep their Mac meaning: ⌘W, ⌘S, ⌘C, ⌘Z, ⌘, for Settings, ⌘/ for Keyboard Shortcuts.
+- **KEY-2 (accepted).** In every Snapmark window, Mac keys keep their Mac meaning: ⌘W, ⌘S, ⌘C, ⌘Z, ⌘, for Settings, ⌘/ for Keyboard Shortcuts.
   - **Why:** Jakob's Law. A key that means the same everywhere is never learned twice.
   - **Today:** `src/keys.ts:35-68`; app menu at `src/menu.ts:166-179`.
 - **KEY-3 (accepted).** Single-key tools (C, 1–7) are on by default and can be switched off in Settings. They never fire while typing.
@@ -194,7 +192,7 @@ The older, longer proposal for v0.9.0 is kept at `docs/ux/audits/2026-09-28/inte
 - **WIN-3 (accepted).** The capture bar opens at the bottom centre of the display with the pointer, over full-screen apps. Focus is on the chosen mode.
   - **Why:** Jakob's Law. macOS's own bar opens in the same place.
   - **Today:** `src/main.ts:336-358`; `src/bar.ts:18`.
-- **WIN-4 (accepted).** Esc closes or steps back in the front HeyDiff window only. One press never closes two things. Only the capture bar and a countdown take Esc from every app (CAP-12, EX-7).
+- **WIN-4 (accepted).** Esc closes or steps back in the front Snapmark window only. One press never closes two things. Only the capture bar and a countdown take Esc from every app (CAP-12, EX-7).
   - **Why:** Mental Model. One press, one step, so Esc is always safe to press.
   - **Today:** bar at `src/bar.ts:49`; session window "All Screenshots (Esc)" at `src/viewer.html:518`; editor per KEY-5.
 - **WIN-5 (accepted).** The editor has tools on top in key order, the image in the middle, notes on the right. Discard and Add to session sit bottom right, Add as the primary button.
@@ -206,7 +204,7 @@ The older, longer proposal for v0.9.0 is kept at `docs/ux/audits/2026-09-28/inte
 - **WIN-7 (accepted).** Settings is one window with General, Capture and Shortcuts tabs. A change applies at once, with no Save button.
   - **Why:** Jakob's Law. macOS's own settings work this way.
   - **Today:** `src/settings.html:133-211`.
-- **WIN-8 (accepted).** Keyboard Shortcuts is its own window, opened by ⌘/ from any HeyDiff window. It can stay open beside the editor.
+- **WIN-8 (accepted).** Keyboard Shortcuts is its own window, opened by ⌘/ from any Snapmark window. It can stay open beside the editor.
   - **Why:** Working Memory. A list kept in view beats a list kept in your head.
   - **Today:** `src/shortcuts.html`; capture bar ADR, decision 8.
 - **WIN-9 (accepted).** The menu bar menu stays short. Current session actions first, then sessions, then Settings… and Quit. Each item names its object.
@@ -243,7 +241,7 @@ The older, longer proposal for v0.9.0 is kept at `docs/ux/audits/2026-09-28/inte
 ### Accessibility
 
 - **ACC-1 (accepted).** Every control has a name a screen reader reads. An icon-only button has an `aria-label`; a control with a key also has `aria-keyshortcuts`.
-  - **Why:** Postel's Law. HeyDiff accepts every way of working: pointer, keyboard and VoiceOver.
+  - **Why:** Postel's Law. Snapmark accepts every way of working: pointer, keyboard and VoiceOver.
   - **Today:** bar and editor buttons are named (`src/bar.html:105-139`, `src/editor.html`). Not yet: `aria-keyshortcuts` anywhere.
 - **ACC-2 (accepted).** Everything the pointer can do, the keyboard can do, except EX-6. Focus always shows as a 2 pt blue ring.
   - **Why:** Postel's Law. A keyboard user meets no dead end.
