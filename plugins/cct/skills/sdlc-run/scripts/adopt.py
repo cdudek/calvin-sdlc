@@ -599,6 +599,22 @@ WHOLE_SUITE_REPEAT = re.compile(r"\s*--repeat-each(?:=|\s+)\S+")
 MAX_FAILURES = re.compile(r"--max-failures(?:=|\s+)\S+")
 
 
+CI_STACK = {"node": "typescript", "python": "python"}
+
+
+def add_ci_paths(cfg: dict, preset: str) -> None:
+    """`ciPaths` is the repo's own list of which changed files switch which CI step on; the CI
+    `changes` job and the agents' "touched tests" read it. Added from the stack's default when
+    missing, never overwritten."""
+    if "ciPaths" in cfg:
+        return
+    defaults = json.loads((TPL / "ci-paths.json").read_text(encoding="utf-8"))
+    cfg["ciPaths"] = defaults[CI_STACK[preset]]
+    wrote.append(
+        f"sdlc.json: ciPaths added ({CI_STACK[preset]} defaults; edit to the repo's folders)"
+    )
+
+
 def migrate_test_cost(cfg: dict, preset: str) -> None:
     """Bring an adopted repo's test cost in line with the preset (measured in leadhub: a
     `--repeat-each 3` over the whole suite took 59-71 min per gate, and the Stop hook fell back
@@ -684,6 +700,7 @@ def main() -> int:
         cfg["defaultBranch"] = default_branch()
         cfg["kitTemplates"] = templates_hash()
         apply_tiers_answer(cfg)
+        add_ci_paths(cfg, preset)
         write(cfg_path, json.dumps(cfg, indent=2, ensure_ascii=False) + "\n")
         manual.append(
             f"sdlc.json was created from the {preset} preset -- check linear.team/project, verify, blocked, codeowners"
@@ -702,6 +719,7 @@ def main() -> int:
         cfg["changesDir"] = "changes"
         wrote.append("sdlc.json: changesDir .changes -> changes")
     if "sdlc.json" in kept:
+        add_ci_paths(cfg, preset)
         migrate_test_cost(cfg, preset)
     if not DRY and cfg_path.exists() and "sdlc.json" in kept:
         cfg_path.write_text(json.dumps(cfg, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")

@@ -45,7 +45,7 @@ and MANUAL drops the App secrets, `SDLC_COOWNER`, the Slack token and the CODEOW
 note. You arm `gh pr merge <n> --squash --auto` on each PR yourself. `claude` is a separate
 switch: `tiers: false` keeps the Claude review.
 
-The four issue templates mirror the Linear templates in `omr-dev:linear-manage`, so an issue reads
+The four issue templates mirror the Linear templates in `cct:linear-manage`, so an issue reads
 the same whichever tracker it started in. They are kept once written — a team that adds a field to
 its own bug form does not lose it on the next run. The PR template carries the requirement-to-proof
 table, which is what makes `F1` traceable from `facts.md` through the test to the merge.
@@ -57,7 +57,7 @@ table, which is what makes `F1` traceable from `facts.md` through the test to th
   Then you: check the Done section reads well.
 - `.claude/plans/*` → `docs/history/plans/` (git mv). Handovers from now on live in the
   change folder.
-- `docs/ux/decisions.md`, the log `omr-ux:decision` used to append to → one ADR per decision
+- `docs/ux/decisions.md`, the log `cct:ux-decision` used to append to → one ADR per decision
   under `designsDir` (nested by `<year>/<year-month>/` when the folder already is), with
   `supersedes` and `superseded_by` read from its "Replaced on … by …" notes. The log becomes
   a pointer. Then `INDEX.md` is written. Then you: link every reference under MANUAL
@@ -67,7 +67,8 @@ table, which is what makes `F1` traceable from `facts.md` through the test to th
 
 1. Read `sdlc.json` with the user: `linear.team` / `project`, `verify`, `verifyStop`,
    `planGate`, `testGlobs`, `prototypeDirs`, `feedback`, `blocked`, `codeowners`, `tiers`,
-   `claude`, `keep`. Read `.github/tiers.json` (skip it with
+   `claude`, `keep`, and `ciPaths` (adopt writes the stack's default once; edit the folder
+   names to the repo's own, `ci-blueprint.md`). Read `.github/tiers.json` (skip it with
    `tiers: false`): the `ask` globs must name what really hurts here (migrations, integrations that write, cluster, workflows, deps, the rules).
 2. Add the tools target (`toolsCommand`) — Makefile `sdlc-tools` or package.json
    `sdlc:tools`; the commands are in `docs/sdlc.md` "Install once per machine".

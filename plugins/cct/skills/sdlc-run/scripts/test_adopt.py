@@ -1105,3 +1105,40 @@ def test_template_tests_commit_with_an_identity() -> None:
         if re.search(r"[\"']commit[\"']|\bcommit -q", line) and "user.email" not in line
     ]
     assert not bare, f"git commit without -c user.name/-c user.email: {bare}"
+
+
+STEPS = ("lint", "unit", "build", "e2e", "deploy")
+
+
+def test_ci_paths_defaults_cover_the_six_stacks() -> None:
+    defaults = json.loads((SCRIPTS.parent / "templates" / "ci-paths.json").read_text())
+    stacks = {"typescript", "python", "rust", "rails", "kotlin", "scala"}
+    assert stacks <= set(defaults)
+    for name in stacks:
+        block = defaults[name]
+        assert block["docs"] and block["all"], name
+        for step in STEPS:
+            assert block[step]["include"], (name, step)
+            assert isinstance(block[step]["exclude"], list), (name, step)
+
+
+@pytest.mark.parametrize(("kind", "stack"), [("node", "typescript"), ("python", "python")])
+def test_adopt_writes_ci_paths_once_and_keeps_the_repos_own(
+    tmp_path: Path, kind: str, stack: str
+) -> None:
+    defaults = json.loads((SCRIPTS.parent / "templates" / "ci-paths.json").read_text())
+    repo = _repo(tmp_path, kind)
+    assert _adopt(repo).returncode == 0
+    cfg = json.loads((repo / "sdlc.json").read_text())
+    assert cfg["ciPaths"] == defaults[stack]
+    cfg["ciPaths"]["unit"]["exclude"].append("mine/*")
+    (repo / "sdlc.json").write_text(json.dumps(cfg))
+    subprocess.run(["git", "add", "."], cwd=repo, check=True, env=_env())
+    assert _adopt(repo).returncode == 0
+    assert "mine/*" in json.loads((repo / "sdlc.json").read_text())["ciPaths"]["unit"]["exclude"]
+    cfg.pop("ciPaths")
+    (repo / "sdlc.json").write_text(json.dumps(cfg))
+    subprocess.run(["git", "add", "."], cwd=repo, check=True, env=_env())
+    res = _adopt(repo)
+    assert any("ciPaths added" in w for w in _sections(res.stdout)["WROTE"])
+    assert json.loads((repo / "sdlc.json").read_text())["ciPaths"] == defaults[stack]

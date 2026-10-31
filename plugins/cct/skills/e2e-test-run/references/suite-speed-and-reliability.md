@@ -153,7 +153,7 @@ The rules are language-neutral; this table is where the commands live. `sdlc-run
 `checks.feature`, `checks.milestone` and the CI jobs from the row for the repo's stack.
 Which changed paths switch each CI job on is the blueprint's step-to-globs table; the commands below fill those jobs.
 
-- **Touched tests**: what an agent or a feature PR runs. Never the whole suite; the full suite
+- **Touched tests**: what an agent or a feature PR runs; which changed files count as test or code comes from `sdlc.json` `ciPaths`, the same lists the CI `changes` job reads. Never the whole suite; the full suite
   runs once per milestone and on the PRs the blueprint's A5 names.
 - **Production target**: what system and E2E tests start. Never a server that compiles or
   reloads on demand: it times differently and hides build-only failures.

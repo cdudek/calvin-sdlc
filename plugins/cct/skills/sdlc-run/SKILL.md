@@ -13,7 +13,7 @@ description: >-
 allowed-tools: "Read Grep Glob Edit Write Agent Skill AskUserQuestion Bash(bash */sdlc-run/scripts/*) Bash(python3 */sdlc-run/scripts/*) Bash(python3 scripts/verify_gate.py *) Bash(python3 scripts/sdlc_status.py *) Bash(git *) Bash(gh *) Bash(bd *) Bash(plannotator *) Bash(make *) Bash(pnpm *) Bash(uv *) Bash(npx *) EnterWorktree mcp__claude_ai_Linear__* mcp__linear__*"
 user_invocable: true
 metadata:
-  version: 3.1.2
+  version: 3.2.0
   author: calvindudek
 effort: high
 ---
@@ -187,7 +187,7 @@ separate PRs only for other repositories and for changes the engineer sends to t
 branch first. A merge gate exists only for a real code dependency; otherwise build on, or
 merge the dependency's branch locally. After a push, arm auto-merge, watch in the background and
 start the next independent row (at most 4 builders). Agents run only the tests they touched.
-CI runs each step (lint, unit, build, e2e, deploy) only when a changed path needs it, nothing for docs, and runs the full E2E suite only on the
+CI runs each step (lint, unit, build, e2e, deploy) only when a changed path needs it (`sdlc.json` `ciPaths`), nothing for docs, and runs the full E2E suite only on the
 PRs into the default branch or `project/*` and on milestone heads. Rules and per-stack
 commands: `references/stages.md` "Records, gates and waiting", `references/ci-blueprint.md`.
 

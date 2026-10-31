@@ -62,6 +62,7 @@ none.
 | `delivery` | `one-go` (default) or `feature-prs` |
 | `goal` | turn caps: `runTurns` for the one-go goal, `featureTurns` and `milestoneTurns` for feature PRs |
 | `languages`, `responsiveTier`, `ux` | what the product ships, the device matrix tier, UX on or off |
+| `ciPaths` | which changed files run which CI step (lint, unit, build, e2e, deploy); `docs` runs nothing, `all` runs everything, a file in no list runs everything |
 | `protected` | paths refused after approval |
 | `verify`, `verifyStop` | full command before PR; fast Stop hook command (skipped inside a `/goal` and when nothing changed since its last pass) |
 | `planGate` | `owner` or `self`; self is barred for data safety, irreversible writes, security or money |

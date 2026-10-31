@@ -37,6 +37,7 @@ How Calvin works with coding agents. Each rule came from a real mistake; the rea
 ## Tests
 
 - The full E2E suite runs in CI and locally only at the end of a milestone, in the background. Never per commit. Agents run only the tests they touched (command per stack: `skills/e2e-test-run/references/suite-speed-and-reliability.md` section K).
+- Which files run which CI step (lint, unit, build, e2e, deploy) is `ciPaths` in `sdlc.json`: `include` and `exclude` globs per step, `docs` runs nothing, a file in no include runs everything. Agents pick touched tests from the same lists.
 - CI skips build, tests and previews for docs-only PRs behind one required `check` status, runs E2E against the built artifact, sharded, with one retry, and runs the full E2E suite only on PRs into the default branch or `project/*` and on milestone heads (`skills/sdlc-run/references/ci-blueprint.md`). Measured 2026-10-31: 22 of 39 runs red, 13 of 22 PRs docs-only.
 - Never mark something done without proof: tests run, output read, behaviour seen in the real app.
 
