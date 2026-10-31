@@ -119,6 +119,20 @@ jobs:
           case "$RESULT" in
             failure|cancelled) echo "::error::claude review job ${RESULT}; fix it or add the re-review label"; exit 1 ;;
           esac
+          # The action skips itself when THIS file differs from master (anti-tamper: a PR
+          # cannot rewrite its own reviewer), so Claude cannot review such a PR and it fails
+          # closed. Checked against the PR's file list BEFORE the tally, so a stale bot tally
+          # cannot skip it. The PR-level decision is not enough: it stays APPROVED after new pushes,
+          # so it needs an APPROVED review on exactly this head from someone other than the
+          # author. A solo-owner repo merges such a PR with an admin override.
+          if gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json files --jq '.files[].path' | grep -qx '.github/workflows/claude-review.yml'; then
+            approvals=$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json reviews,author \
+              --jq '.author.login as $a | [.reviews[] | select(.state == "APPROVED" and .commit.oid == env.HEAD and .author.login != $a)] | length')
+            if [ "$approvals" -gt 0 ]; then
+              echo "::notice::this PR changes claude-review.yml and a human approved head $HEAD"; exit 0
+            fi
+            echo "::error::this PR changes claude-review.yml; it needs a human approval on head $HEAD from someone other than the author"; exit 1
+          fi
           # The tally line the review posts: `IMPORTANT: n  NITS: m  SHA: <head>`. Read the
           # newest one from the PR's comments so a push without a review still gets a verdict
           # (on the old SHA -- which fails below until the author asks for a re-review).
@@ -126,17 +140,6 @@ jobs:
             --jq '.[] | select(.user.type == "Bot") | . as $c | ($c.body | scan("IMPORTANT: [0-9]+  NITS: [0-9]+  SHA: [0-9a-f]+")) | "\($c.updated_at) \(.)"' \
             | sort | tail -1 | cut -d' ' -f2-)
           if [ -z "$tally" ]; then
-            # The action skips itself when THIS file differs from master (anti-tamper: a PR
-            # cannot rewrite its own reviewer). That is the one legitimate missing tally, and
-            # it is checked against the PR's file list, not assumed. Claude cannot review such
-            # a PR, so it fails closed: only a human approval lets it through.
-            if gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json files --jq '.files[].path' | grep -qx '.github/workflows/claude-review.yml'; then
-              decision=$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json reviewDecision --jq .reviewDecision)
-              if [ "$decision" = "APPROVED" ]; then
-                echo "::notice::this PR changes claude-review.yml and a human approved it"; exit 0
-              fi
-              echo "::error::this PR changes claude-review.yml, so Claude cannot review it; a human must approve it"; exit 1
-            fi
             echo "::error::no Claude review tally on this PR yet -- add the re-review label"; exit 1
           fi
           echo "$tally"
