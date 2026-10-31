@@ -13,7 +13,7 @@ description: >-
 allowed-tools: "Read Grep Glob Edit Write Agent Skill AskUserQuestion Bash(bash */sdlc-run/scripts/*) Bash(python3 */sdlc-run/scripts/*) Bash(python3 scripts/verify_gate.py *) Bash(python3 scripts/sdlc_status.py *) Bash(git *) Bash(gh *) Bash(bd *) Bash(plannotator *) Bash(make *) Bash(pnpm *) Bash(uv *) Bash(npx *) EnterWorktree mcp__claude_ai_Linear__* mcp__linear__*"
 user_invocable: true
 metadata:
-  version: 3.1.0
+  version: 3.1.1
   author: calvindudek
 effort: high
 ---
@@ -184,7 +184,7 @@ No PR carries only a record: plans, handovers, gate lines and findings ride in t
 milestone's PR. A merge gate exists only for a real code dependency; otherwise build on, or
 merge the dependency's branch locally. After a push, arm auto-merge, watch in the background and
 start the next independent row (at most 4 builders). Agents run only the tests they touched.
-CI skips build, tests and previews for docs-only PRs and runs the full E2E suite only on the
+CI runs each step (lint, unit, build, e2e, deploy) only when a changed path needs it, nothing for docs, and runs the full E2E suite only on the
 PRs into the default branch or `project/*` and on milestone heads. Rules and per-stack
 commands: `references/stages.md` "Records, gates and waiting", `references/ci-blueprint.md`.
 
@@ -220,7 +220,7 @@ commands: `references/stages.md` "Records, gates and waiting", `references/ci-bl
 - `references/chain.md` — folder layout, decisions, frontmatter, `sdlc.json` keys, history.
 - `references/requirements-grammar.md` — EARS and Gherkin grammar for `facts.md`.
 - `references/adopt.md` — what `adopt` writes, what stays manual, migrations.
-- `references/ci-blueprint.md` — docs-only skip, one `check` status, E2E scope, protected interior branches.
+- `references/ci-blueprint.md` — per-step gating by changed paths, docs run nothing, one `check` status, E2E scope, protected interior branches.
 - `references/tiers.md` — Ship / Show / Ask by path.
 - `references/playbook.md` — playbook mapping and metrics.
 - `references/layout-research.md` — why `changes/` plus archive.

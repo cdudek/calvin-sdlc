@@ -9,14 +9,14 @@ are in one table: `../../e2e-test-run/references/suite-speed-and-reliability.md`
 
 | # | Rule | Where it lives |
 |---|---|---|
-| A1 | A docs-only PR skips build, tests and preview deploys; the one required status still reports success | this file, A1 |
+| A1 | Each step (lint, unit, build, e2e, deploy) runs only when a changed path needs it; a docs change runs nothing and the one required status still reports success | this file, A1 |
 | A2 | E2E and system tests run against the built artifact, never a dev server that compiles on demand | section K, column "Production target" |
 | A3 | The slow suite is sharded over N jobs, each with its own database service | section K, column "Shard" |
 | A4 | One retry; a pass on retry is reported, and a committed known-flaky list gets fixed | section K, column "Retry"; list format in section G |
-| A5 | The full E2E suite runs only on PRs into the default branch or `project/*`, and on milestone heads | this file, A5 |
+| A5 | Within the `e2e` step: the full suite runs only on PRs into the default branch or `project/*`, and on milestone heads; other PRs run the touched specs | this file, A5 |
 | A6 | Interior branches carry the same required status, so auto-merge waits for green | this file, A6 |
 
-## A1 and A5 — one path check, one aggregating `check` job
+## A1 and A5 — one `changes` job sets a flag per step, `check` stays the one required status
 
 Branch protection requires exactly one status, `check`. Every other job hangs off it. Do not
 use workflow-level `paths-ignore`: a workflow that never starts leaves the required status
@@ -33,7 +33,11 @@ jobs:
   changes:
     runs-on: ubuntu-latest
     outputs:
-      code: ${{ steps.f.outputs.code }}
+      lint: ${{ steps.f.outputs.lint }}
+      unit: ${{ steps.f.outputs.unit }}
+      build: ${{ steps.f.outputs.build }}
+      e2e: ${{ steps.f.outputs.e2e }}
+      deploy: ${{ steps.f.outputs.deploy }}
       full: ${{ steps.f.outputs.full }}
     steps:
       - id: f
@@ -44,31 +48,64 @@ jobs:
           BASE: ${{ github.base_ref }}
           HEAD: ${{ github.head_ref }}
           DEFAULT: ${{ github.event.repository.default_branch }}
+          # The lists the repo edits (shell globs; * also crosses /). Fill them from the table below.
+          DOCS: "changes/* docs/* plans/* .claude/plans/* *.md"
+          ALL: ".github/workflows/* sdlc.json package-lock.json pnpm-lock.yaml yarn.lock"
+          LINT: "src/* app/* e2e/* *.test.*"
+          UNIT: "src/* app/* *.test.*"
+          BUILD: "src/* app/* public/* Dockerfile"
+          E2E: "src/* app/* public/* e2e/*"
+          DEPLOY: "src/* app/* public/* Dockerfile deploy/*"
         run: |
+          set -f # keep the globs literal
+          hit() { for g in $2; do case "$1" in $g) return 0 ;; esac; done; return 1; }
+          for s in lint unit build e2e deploy; do eval "$s=false"; done
           if [ -z "$PR" ]; then
-            echo "code=true" >> "$GITHUB_OUTPUT"; echo "full=true" >> "$GITHUB_OUTPUT"; exit 0
-          fi
-          files=$(gh pr diff "$PR" --name-only)  # fails closed on a diff too large to list
-          if printf '%s\n' "$files" | grep -qvE '^(changes/|docs/|plans/|\.claude/plans/)|\.md$'; then
-            echo "code=true" >> "$GITHUB_OUTPUT"
+            for s in lint unit build e2e deploy; do eval "$s=true"; done # push to the default branch
           else
-            echo "code=false" >> "$GITHUB_OUTPUT"
+            for f in $(gh pr diff "$PR" --name-only); do # fails closed on a diff too large to list
+              hit "$f" "$DOCS" && continue
+              if hit "$f" "$ALL"; then lint=true; unit=true; build=true; e2e=true; deploy=true; continue; fi
+              known=false
+              hit "$f" "$LINT" && lint=true && known=true
+              hit "$f" "$UNIT" && unit=true && known=true
+              hit "$f" "$BUILD" && build=true && known=true
+              hit "$f" "$E2E" && e2e=true && known=true
+              hit "$f" "$DEPLOY" && deploy=true && known=true
+              # a file no list knows is code you forgot to list: run everything
+              $known || { lint=true; unit=true; build=true; e2e=true; deploy=true; }
+            done
           fi
+          for s in lint unit build e2e deploy; do eval "echo $s=\$$s" >> "$GITHUB_OUTPUT"; done
           case "$BASE:$HEAD" in
             "$DEFAULT":*|project/*:*|*:milestone/*) echo "full=true" >> "$GITHUB_OUTPUT" ;;
             *) echo "full=false" >> "$GITHUB_OUTPUT" ;;
           esac
 
-  lint-types-unit: # build, lint, type check, unit tests: commands per stack in your own repo
+  lint:
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: needs.changes.outputs.lint == 'true'
     runs-on: ubuntu-latest
     steps:
-      - run: echo "the stack's lint, type and unit commands"
+      - run: echo "lint and type check; commands per stack: section K"
+
+  unit:
+    needs: changes
+    if: needs.changes.outputs.unit == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "unit tests; commands per stack: section K"
+
+  build:
+    needs: changes
+    if: needs.changes.outputs.build == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "the production build (section K, column Production target)"
 
   e2e: # one matrix leg per shard, each with its own database service; see section K
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: needs.changes.outputs.e2e == 'true'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -77,38 +114,76 @@ jobs:
     env:
       FULL: ${{ needs.changes.outputs.full }}
     steps:
-      - run: echo "full suite when FULL=true, else only the specs changed in the PR"
+      - run: echo "full suite when FULL=true, else only the specs changed in the PR (A5)"
 
-  preview: # deploys cost minutes and money; docs-only PRs get none
+  deploy: # preview or staging: costs minutes and money
     needs: changes
-    if: needs.changes.outputs.code == 'true'
+    if: needs.changes.outputs.deploy == 'true'
     runs-on: ubuntu-latest
     steps:
-      - run: echo "the preview deploy"
+      - run: echo "the preview or staging deploy"
 
   check: # the only required status
     if: always()
-    needs: [changes, lint-types-unit, e2e, preview]
+    needs: [changes, lint, unit, build, e2e, deploy]
     runs-on: ubuntu-latest
     steps:
       - env:
-          CODE: ${{ needs.changes.outputs.code }}
-          CHANGES: ${{ needs.changes.result }}
           RESULTS: ${{ join(needs.*.result, ' ') }}
         run: |
-          [ "$CHANGES" = success ] || exit 1
-          [ "$CODE" = true ] || exit 0 # docs-only: the skipped jobs are the point
-          for r in $RESULTS; do [ "$r" = success ] || exit 1; done
+          # skipped is fine: a flag said the step was not needed. failure or cancelled is not.
+          case " $RESULTS " in *" failure "*|*" cancelled "*) exit 1 ;; esac
 ```
 
-- **What counts as docs-only** is the `grep` pattern: `changes/`, `docs/`, plans and any
-  `*.md`. A repo adds its own non-code folders there; a file the build reads (a `docs/` folder
-  that feeds the site, `README.md` embedded in a package) stays out of the pattern.
-- **`full`** is true for a PR into the default branch, a PR into `project/*`, and a PR whose
-  head is `milestone/*`. A feature PR into `milestone/*` is false: it gets lint, types, unit
-  tests and only the specs it changed (section K, column "Touched tests").
+- **A change that touches only docs runs nothing.** Every flag is false, every job skips and
+  `check` still reports success. `DOCS` is the one list a repo edits for that: `*.md`,
+  `docs/**`, `changes/**`, plans.
+- **A YAML counts as docs only if nothing reads it:** no build, test, deploy or app code
+  loads it. A YAML a script or the app does read is code. Always code, never in `DOCS`:
+  `.github/workflows/**`, app and framework config, OpenAPI specs the code generates from,
+  k8s, helm and terraform YAML, `sdlc.json`, lockfiles. A `docs/` folder that feeds the site and
+  a `README.md` embedded in a package are read by the build: take them out of `DOCS`.
+- **`ALL`** (lockfiles, CI workflows, `sdlc.json`) triggers every step. A file in neither
+  `DOCS`, `ALL` nor a step list also triggers every step, so a forgotten path costs minutes,
+  never a missed check.
+- **`full`** is A5 and gates only the E2E scope: true for a PR into the default branch, a PR
+  into `project/*`, and a PR whose head is `milestone/*`. A feature PR into `milestone/*` is
+  false: its `e2e` job (when the flag is on) runs only the specs it changed (section K,
+  column "Touched tests").
 - **A pass on retry** is reported in the job summary and does not fail a feature PR; on a
   full run (`FULL=true`) it does (`failOnFlakyTests` or the stack's equivalent). Section K.
+
+### Which changed paths trigger which step
+
+Each row's steps get that row's globs. Union the rows into the `LINT`, `UNIT`, `BUILD`, `E2E`
+and `DEPLOY` lists above; adapt folder names to the repo. Lockfiles, `.github/workflows/**`
+and `sdlc.json` are `ALL` in every stack.
+
+| Stack | Changed path | Steps |
+|---|---|---|
+| TypeScript, JavaScript | `src/**`, `app/**`, `public/**` | lint unit build e2e deploy |
+| | `*.test.*`, `__tests__/**` | lint unit |
+| | `e2e/**`, `playwright.config.*` | lint e2e |
+| | `Dockerfile`, `deploy/**`, `next.config.*` | build e2e deploy |
+| Python | `src/**`, `app/**` | lint unit build e2e deploy |
+| | `tests/**` | lint unit |
+| | `e2e/**` | e2e |
+| | `pyproject.toml`, `Dockerfile` | build deploy |
+| Rust | `src/**`, `crates/**` | lint unit build e2e deploy |
+| | `tests/**`, `benches/**` | lint unit |
+| | `Cargo.toml`, `build.rs`, `Dockerfile` | build e2e deploy |
+| Ruby, Rails | `app/models/**`, `app/controllers/**`, `app/services/**`, `lib/**` | lint unit build e2e deploy |
+| | `app/views/**` | lint e2e |
+| | `app/assets/**`, `app/javascript/**` | lint build e2e deploy |
+| | `db/migrate/**`, `db/schema.rb` | unit e2e deploy |
+| | `spec/**` (not `spec/system/**`) | lint unit |
+| | `spec/system/**` | lint e2e |
+| Kotlin | `src/main/**` | lint unit build e2e deploy |
+| | `src/test/**` | lint unit |
+| | `build.gradle*`, `Dockerfile`, `src/main/resources/**` | build e2e deploy |
+| Scala | `src/main/**` | lint unit build e2e deploy |
+| | `src/test/**` | lint unit |
+| | `build.sbt`, `project/*.sbt`, `Dockerfile` | build e2e deploy |
 
 ## A6 — interior branches wear the same required status
 

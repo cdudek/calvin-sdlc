@@ -151,6 +151,7 @@ product fix. A correct failing test is evidence to preserve.
 The rules are language-neutral; this table is where the commands live. `sdlc-run`
 (`../../sdlc-run/references/ci-blueprint.md`) says when each applies. Fill `sdlc.json`
 `checks.feature`, `checks.milestone` and the CI jobs from the row for the repo's stack.
+Which changed paths switch each CI job on is the blueprint's step-to-globs table; the commands below fill those jobs.
 
 - **Touched tests**: what an agent or a feature PR runs. Never the whole suite; the full suite
   runs once per milestone and on the PRs the blueprint's A5 names.
