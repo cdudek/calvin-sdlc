@@ -53,6 +53,11 @@ curl -fsSL https://plannotator.ai/install.sh | bash
 - **Blueprint:** `blueprint/` has the Dockerfile, GitHub Actions, deploy docs and release config for Next.js on Cloud Run, Electron, WXT and a HeroUI design-system kit, with notes for running it without GCP.
 - **Examples:** `examples/heydiff/` has a real context repo, brand guide exports, UX docs and the brand guide PDF.
 
+## How sdlc-run works
+
+- [`docs/sdlc-run.md`](docs/sdlc-run.md): the stages and the two touchpoints, one `/goal` per milestone, branches, commits versus PRs, the verify contract, the CI blueprint with `ciPaths`, and how to adopt. It has diagrams that GitHub renders.
+- [`docs/sdlc-run-explained.html`](docs/sdlc-run-explained.html): the same content as one visual page. Download it and open it in a browser.
+
 ## Rebuild from the sources
 
 `scripts/build.py` regenerates `plugins/cct/` from the OMR AI Kit (latest `master`), the installed public plugins and the HeyDiff repos, keeps only what `sdlc-run` and `project-kickoff` reach, and lays `overlay/` (the hand-written files) on top. Edit hand-written files in `overlay/`, never in `plugins/cct/`.
