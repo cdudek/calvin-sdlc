@@ -1,0 +1,76 @@
+<!-- @dsCard group="Type" viewport="880x800" name="Label" subtitle="UI chrome — static, 2% tracking · also applies to editorial" -->
+<!DOCTYPE html>
+<html lang="de" data-theme="light"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+body{margin:0;padding:24px;background:var(--background-color-surface);color:var(--text-color-main);font-family:var(--font-sans)}
+h3{font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--text-color-subtlest);margin:0 0 12px}
+section{margin-bottom:28px}
+.stack{display:flex;flex-direction:column;gap:14px}
+.meta{color:var(--text-color-subtlest);font-size:11px;font-family:var(--font-mono)}
+.hex{font-family:var(--font-mono);font-size:11px;font-weight:700}
+.row{display:flex;align-items:baseline;gap:16px}
+.lead{font-size:13px;line-height:1.55;color:var(--text-color-subtle);margin:0 0 14px;max-width:86ch}
+.chips{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.chip{display:inline-flex;align-items:center;padding:5px 10px;border-radius:6px}
+.on{display:flex;gap:10px;align-items:center;padding:14px 16px;border-radius:12px}
+.dont{border:1px solid var(--border-color-main);border-radius:12px;padding:14px 16px;font-size:13px;line-height:1.55;color:var(--text-color-subtle)}
+.dont b{color:var(--text-color-main);font-weight:600}
+</style></head><body>
+
+<section>
+<h3>Web &amp; Product — base</h3>
+<div class="stack">
+  <div class="row"><span class="txt-label-m-bold-uppercase">Categories</span><span class="meta">txt-label-m-bold-uppercase</span></div>
+  <div class="row"><span class="txt-label-m-medium">Filter by rating</span><span class="meta">txt-label-m-medium</span></div>
+  <div class="row"><span class="txt-label-s-bold-uppercase text-primary">New</span><span class="meta">txt-label-s-bold-uppercase</span></div>
+</div>
+</section>
+
+<section>
+<h3>Editorial &amp; Advertising</h3>
+<p class="lead">The same classes, unchanged: size, line height, weight and 2 % tracking stay the default values from <span class="meta">tokens/typography.css</span>. Labels and flags follow the UI/UX standards here too. Three forms: <b>Solid chip</b> with brand-kit surface and text <span class="hex">#000000</span> or <span class="hex">#ffffff</span> by contrast, <b>Quiet chip</b> on <span class="hex">#f4f2ff</span>, <span class="hex">#fef9e8</span> or <span class="hex">#f3f4f6</span> with black text, <b>Status flag</b> with the UI status pairs. Label surfaces do not count against the colour budget.</p>
+
+<div class="stack">
+  <div class="on" style="background:#ffffff;border:1px solid #dfe1e5">
+    <span class="chip txt-label-s-bold-uppercase" style="background:#8259ff;color:#ffffff">Report 2026</span>
+    <span class="chip txt-label-s-bold-uppercase" style="background:#00adad;color:#ffffff">Neu</span>
+    <span class="chip txt-label-s-bold-uppercase" style="background:#f2b200;color:#000000">Limitiert</span>
+    <span class="chip txt-label-s-bold-uppercase" style="background:#ffdb75;color:#000000">Early Bird</span>
+    <span class="meta">on #ffffff</span>
+  </div>
+  <div class="on" style="background:#000000">
+    <span class="chip txt-label-s-bold-uppercase" style="background:#8259ff;color:#ffffff">Keynote</span>
+    <span class="chip txt-label-s-bold-uppercase" style="background:#ffffff;color:#000000">Stage 1</span>
+    <span class="chip txt-label-s-bold-uppercase" style="background:#f5c41c;color:#000000">Sold out</span>
+    <span class="txt-label-m-medium" style="color:#ffffff">Freitag, 6. Mai</span>
+    <span class="meta" style="color:#9197a3">on #000000</span>
+  </div>
+  <div class="on" style="background:#8259ff">
+    <span class="chip txt-label-s-bold-uppercase" style="background:#000000;color:#ffffff">Kapitel 03</span>
+    <span class="chip txt-label-s-bold-uppercase" style="background:#ffdb75;color:#000000">Update</span>
+    <span class="txt-label-m-bold-uppercase" style="color:#ffffff">Benchmarks</span>
+    <span class="meta" style="color:#ffffff;opacity:.7">on #8259ff</span>
+  </div>
+  <div class="on" style="background:#ffdb75">
+    <span class="chip txt-label-s-bold-uppercase" style="background:#000000;color:#ffffff">Tipp</span>
+    <span class="txt-label-m-medium" style="color:#000000">12 Anbieter im Vergleich</span>
+    <span class="meta" style="color:#000000;opacity:.6">on a light tone</span>
+  </div>
+  <div class="on" style="background:#ffffff;border:1px solid #dfe1e5">
+    <span class="chip txt-label-s-bold-uppercase" style="background:#f4f2ff;color:#000000">Quiet chip</span>
+    <span class="chip txt-label-s-bold-uppercase" style="background:#f3f4f6;color:#000000">Kategorie</span>
+    <span class="chip txt-label-s-bold-uppercase" style="background:#d1fae9;color:#065f4f">Verfügbar</span>
+    <span class="chip txt-label-s-bold-uppercase" style="background:#fbe69c;color:#824a11">In Prüfung</span>
+    <span class="chip txt-label-s-bold-uppercase" style="background:#fee5e7;color:#b91740">Abgelaufen</span>
+    <span class="meta">Quiet chip &amp; status flag</span>
+  </div>
+</div>
+</section>
+
+<section>
+<h3>Not permitted</h3>
+<div class="dont">No label sizes, weights or tracking values of their own for editorial. <b>No <span class="hex">#000000</span> on <span class="hex">#8259ff</span>, <span class="hex">#8e7bff</span>, <span class="hex">#00adad</span></b> and <b>no <span class="hex">#ffffff</span> on <span class="hex">#f2b200</span>, <span class="hex">#f5c41c</span>, <span class="hex">#ffdb75</span>, <span class="hex">#ada6fc</span>, <span class="hex">#33cccc</span>, <span class="hex">#80e0db</span></b>. No purple as label text: <span class="hex">#8259ff</span> reaches 4.5:1 on no subtle surface. Coloured label text stays reserved for the status pairs and the chart reference. The UI brand values <span class="hex">#7337fc</span> and <span class="hex">#601ee3</span> stay out; purple here is <span class="hex">#8259ff</span>.</div>
+</section>
+
+</body></html>

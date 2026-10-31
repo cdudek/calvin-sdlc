@@ -1,0 +1,46 @@
+<!-- @dsCard group="Colors · 0 Routing" viewport="980x620" name="Which colour world? — Decision table" subtitle="Read first. The asset type decides the colour world. The default is Editorial & Advertising." -->
+<!DOCTYPE html>
+<html lang="de" data-theme="light"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+body{margin:0;padding:28px;background:var(--background-color-surface);color:var(--text-color-main);font-family:var(--font-sans)}
+h2{font-size:22px;font-weight:800;margin:0 0 6px}
+p.lead{font-size:14px;line-height:1.5;color:var(--text-color-subtle);margin:0 0 22px;max-width:72ch}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th{text-align:left;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-color-subtlest);padding:0 12px 8px 0;border-bottom:1px solid var(--border-color-main)}
+td{padding:9px 12px 9px 0;border-bottom:1px solid var(--border-color-subtle);vertical-align:top;line-height:1.45}
+td.dom{white-space:nowrap;font-weight:700}
+.d2{color:#8259ff}
+.d1{color:#00adad}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:24px}
+.box{border:1px solid var(--border-color-main);border-radius:16px;padding:16px 18px}
+.box h3{font-size:14px;font-weight:800;margin:0 0 6px}
+.box p{font-size:12.5px;line-height:1.5;color:var(--text-color-subtle);margin:0}
+.note{margin-top:20px;border-radius:16px;padding:14px 18px;background:#f4f2ff;border:1px solid #d8d4ff;font-size:13px;line-height:1.55}
+.note b{font-weight:800}
+</style></head><body>
+<h2>Two colour worlds. Never mix them.</h2>
+<p class="lead">The system carries two separate palettes. Determine the asset type before every colour decision, then work exclusively in the matching colour world. The default is <b>Editorial &amp; Advertising</b>. If the asset type is unclear, ask before setting a colour.</p>
+<table>
+<thead><tr><th style="width:46%">Asset type</th><th style="width:28%">Colour world</th><th>Source</th></tr></thead>
+<tbody>
+<tr><td>Presentations, slides, keynotes</td><td class="dom d2">Editorial &amp; Advertising</td><td>Brand-kit palette</td></tr>
+<tr><td>Whitepapers, reports, PDFs</td><td class="dom d2">Editorial &amp; Advertising</td><td>Brand-kit palette</td></tr>
+<tr><td>Ad assets, ads, social posts</td><td class="dom d2">Editorial &amp; Advertising</td><td>Brand-kit palette</td></tr>
+<tr><td>Event and trade-fair graphics, posters</td><td class="dom d2">Editorial &amp; Advertising</td><td>Brand-kit palette</td></tr>
+<tr><td>Charts, data visualisation, illustrations</td><td class="dom d2">Editorial &amp; Advertising</td><td>Brand-kit palette</td></tr>
+<tr><td>Videos, motion graphics, bumpers, social clips</td><td class="dom d2">Editorial &amp; Advertising</td><td>Brand-kit palette</td></tr>
+<tr><td>Templates for Canva / Figma, prompts for AI image and video generators</td><td class="dom d2">Editorial &amp; Advertising</td><td>Brand-kit palette</td></tr>
+<tr><td>Websites, web apps, landing pages</td><td class="dom d1">Web &amp; Product</td><td>Semantic UI tokens</td></tr>
+<tr><td>Dashboards</td><td class="dom d1">Web &amp; Product</td><td>Semantic UI tokens</td></tr>
+<tr><td>Website and app mockups</td><td class="dom d1">Web &amp; Product</td><td>Semantic UI tokens</td></tr>
+<tr><td>Design handoffs, component specs, anything that ends in code</td><td class="dom d1">Web &amp; Product</td><td>Semantic UI tokens</td></tr>
+<tr><td>Not clearly assignable</td><td class="dom">Ask</td><td>Set no colour until clarified</td></tr>
+</tbody>
+</table>
+<div class="two">
+<div class="box"><h3>Colour world 1 — Web &amp; Product (UI)</h3><p>Semantic UI tokens from "Background colors" and "Brand palette": bg-surface, bg-surface-elevation-*, text-main, border-main, bg-primary-*, status colours. Only for surfaces that end in code.</p></div>
+<div class="box"><h3>Colour world 2 — Editorial &amp; Advertising (brand kit)</h3><p>Eleven binding hex values from "Graphic / chart colours". For everything designed outside the product. Always output colours as hex, token names only as a supplement: external tools and image generators cannot resolve token names.</p></div>
+</div>
+<div class="note"><b>The only exception:</b> <code>bg-primary-subtlest</code> <b>#f4f2ff</b> and <code>bg-secondary-subtlest</code> <b>#fef9e8</b> may also be used in colour world 2. Exclusively as box and surface backgrounds (callouts, cards, table rows, quote boxes). Not for text, icons, lines, chart series or full-bleed backgrounds. This is not a general permeability between the colour worlds.</div>
+</body></html>

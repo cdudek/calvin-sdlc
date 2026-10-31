@@ -1,0 +1,141 @@
+/* OMR — Dark theme values. OPT-IN ONLY.
+   Not imported by styles.css: the design system renders light by default.
+   Link this file explicitly if a consumer needs dark mode. */
+
+/* ============================================================
+   Dark theme — same UI-role tokens, dark values.
+   Elevation INVERTS: higher tier reads lighter.
+   ============================================================ */
+[data-theme="dark"] {
+  /* --- Text --- */
+  --text-color-main: #f8f9fb;
+  --text-color-subtle: #c0c4cc;
+  --text-color-subtlest: #7f8694;
+  --text-color-primary: #ada6fc;
+  --text-color-primary-subtle: #601ee3;
+  --text-color-selected: #8e7bff;
+  --text-color-solid: #ffffff;
+  --text-color-solid-inverse: #000000;
+  --text-color-inverse: #0c0d0f;
+  --text-color-disabled: rgba(255, 255, 255, 0.4);
+  --text-color-error: #f77589;
+  --text-color-error-inverse: #4a071b;
+  --text-color-success: #a7f3d8;
+  --text-color-success-inverse: #022c26;
+  --text-color-warning: #fbe69c;
+  --text-color-warning-inverse: #6f3d14;
+
+  /* --- Icon --- */
+  --text-color-icon-main: #f8f9fb;
+  --text-color-icon-subtle: #c0c4cc;
+  --text-color-icon-subtlest: #7f8694;
+  --text-color-icon-primary: #ada6fc;
+  --text-color-icon-primary-subtle: #601ee3;
+  --text-color-icon-secondary: #f5c41c;
+  --text-color-icon-secondary-subtle: #a6620a;
+  --text-color-icon-selected: #8e7bff;
+  --text-color-icon-inverse: #0c0d0f;
+  --text-color-icon-error: #f77589;
+  --text-color-icon-error-inverse: #4a071b;
+  --text-color-icon-success: #a7f3d8;
+  --text-color-icon-success-inverse: #022c26;
+  --text-color-icon-warning: #fbe69c;
+  --text-color-icon-warning-inverse: #6f3d14;
+  --text-color-icon-solid: #ffffff;
+  --text-color-icon-solid-inverse: #000000;
+  --text-color-icon-badge-filled-error: #4a071b;
+  --text-color-icon-badge-filled-success: #022c26;
+  --text-color-icon-badge-filled-warning: #6f3d14;
+
+  /* --- Link --- */
+  --text-color-link-main: #fdfdfd;
+  --text-color-link-primary: #8e7bff;
+  --text-color-link-inverse: #060708;
+
+  /* --- Surface / background (elevation inverts: higher = lighter) --- */
+  --background-color-surface: #060708;
+  --background-color-solid: #000000;
+  --background-color-surface-elevation-1: #0c0d0f;
+  --background-color-surface-elevation-2: #121417;
+  --background-color-surface-elevation-3: #181b1f;
+  --background-color-surface-elevation-4: #22242a;
+  --background-color-surface-elevation-5: #292c32;
+  --background-color-surface-inverse: #fdfdfd;
+
+  /* --- Brand fills --- */
+  --background-color-primary-main: #ada6fc;
+  --background-color-primary-strong: #d8d4ff;
+  --background-color-primary-stronger: #ebe8ff;
+  --background-color-primary-strongest: #f4f2ff;
+  --background-color-primary-subtle: #4f18bf;
+  --background-color-primary-subtler: #42169c;
+  --background-color-primary-subtlest: #270b6a;
+  --background-color-secondary-main: #ffdb75;
+  --background-color-secondary-strong: #fbe69c;
+  --background-color-secondary-stronger: #fdf2c4;
+  --background-color-secondary-strongest: #fef9e8;
+  --background-color-secondary-subtle: #f5c41c;
+  --background-color-secondary-subtler: #e39807;
+  --background-color-secondary-subtlest: #824a11;
+
+  /* --- Status fills --- */
+  --background-color-error-strong: #fba6b2;
+  --background-color-error-subtle: #4a071b;
+  --background-color-success-strong: #6ee7c3;
+  --background-color-success-subtle: #022c26;
+  --background-color-warning-strong: #ffdb75;
+  --background-color-warning-subtle: #411f07;
+  --background-color-disabled: rgba(255, 255, 255, 0.05);
+
+  /* --- Borders --- */
+  --border-color-main: rgba(255, 255, 255, 0.3);
+  --border-color-main-solid: #353a42;
+  --border-color-subtle: rgba(255, 255, 255, 0.2);
+  --border-color-strong: rgba(255, 255, 255, 0.5);
+  --border-color-primary: rgba(115, 55, 252, 0.9);
+  --border-color-primary-solid: #ada6fc;
+  --border-color-primary-subtle: rgba(115, 55, 252, 0.6);
+  --border-color-secondary: rgba(245, 196, 28, 0.9);
+  --border-color-secondary-subtle: rgba(245, 196, 28, 0.9);
+  --border-color-selected: rgba(115, 55, 252, 0.9);
+  --border-color-error: #ef4463;
+  --border-color-error-subtle: #9b163c;
+  --border-color-success: #34d3a9;
+  --border-color-success-subtle: #047863;
+  --border-color-warning: #f5c41c;
+  --border-color-warning-subtle: #a6620a;
+  --border-color-disabled: rgba(255, 255, 255, 0.1);
+  --border-color-inverse: rgba(20, 27, 40, 0.2);
+
+  /* --- Buttons --- */
+  --background-color-button-primary-color: #8e7bff;
+  --background-color-button-primary-neutral: #fdfdfd;
+  --background-color-button-primary-success: #059678;
+  --background-color-button-primary-destructive: #ef4463;
+  --background-color-button-secondary-color: rgba(115, 55, 252, 0.2);
+  --background-color-button-secondary-neutral: rgba(255, 255, 255, 0.1);
+  --background-color-button-secondary-success: rgba(52, 211, 169, 0.2);
+  --background-color-button-secondary-destructive: rgba(220, 34, 77, 0.2);
+  --background-color-button-outline: rgba(20, 27, 40, 0.05);
+  --background-color-button-outline-color: rgba(115, 55, 252, 0);
+  --background-color-button-outline-success: rgba(20, 27, 40, 0.05);
+  --background-color-button-outline-destructive: rgba(20, 27, 40, 0.05);
+
+  /* --- State layers --- */
+  --background-color-state-hover-neutral: rgba(255, 255, 255, 0.1);
+  --background-color-state-pressed-neutral: rgba(255, 255, 255, 0.2);
+  --background-color-state-drag-neutral: rgba(255, 255, 255, 0.3);
+  --background-color-state-hover-primary: rgba(115, 55, 252, 0.2);
+  --background-color-state-pressed-primary: rgba(115, 55, 252, 0.3);
+  --background-color-state-drag-primary: rgba(115, 55, 252, 0.4);
+  --background-color-state-hover-neutral-inverse: rgba(20, 27, 40, 0.1);
+  --background-color-state-pressed-neutral-inverse: rgba(20, 27, 40, 0.2);
+  --background-color-state-drag-neutral-inverse: rgba(20, 27, 40, 0.3);
+
+  /* --- Effects --- */
+  --background-color-effect-backdrop-overlay: rgba(255, 255, 255, 0.2);
+  --background-color-effect-focused: #ada6fc;
+
+  /* --- Toggle --- */
+  --background-color-toggle-inactive: rgba(255, 255, 255, 0.4);
+}

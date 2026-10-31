@@ -1,0 +1,12 @@
+{
+  "name": "calvin-sdlc",
+  "owner": { "name": "Calvin Dudek" },
+  "description": "Calvin's AI-native SDLC as one Claude Code plugin: intent to merged release, UX design and review, code review, E2E, CI/CD blueprint.",
+  "plugins": [
+    {
+      "name": "calvin-sdlc",
+      "source": "./plugins/calvin-sdlc",
+      "description": "The whole SDLC in one self-contained plugin: sdlc-run and every skill, agent and hook it runs, the UX suite, superpowers, ponytail, plannotator, impeccable, review toolkits, the stack and the Docker + GitHub Actions blueprint."
+    }
+  ]
+}

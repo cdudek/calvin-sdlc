@@ -1,0 +1,67 @@
+name: CI
+
+# Every PR and every push to main. `check` is the one required status.
+# Security: no github.event.* expression is expanded inside a `run:` script.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  secrets-scan:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          # gitleaks scans the git history, so a shallow clone would scan almost nothing
+          fetch-depth: 0
+      # Its own job, before any repository code runs. The binary lives outside the checkout,
+      # pinned by version and sha256 (the gitleaks action needs a paid licence for organisations),
+      # and a PR cannot quietly switch rules off with its own config or ignore file.
+      - name: gitleaks
+        run: |
+          test ! -e .gitleaks.toml -a ! -e gitleaks.toml -a ! -e .gitleaksignore \
+            || { echo '::error::gitleaks config or ignore file in the repo; rules change only in this workflow'; exit 1; }
+          curl -sSfL -o "$RUNNER_TEMP/gitleaks.tgz" https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz
+          echo "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb  $RUNNER_TEMP/gitleaks.tgz" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/gitleaks.tgz" -C "$RUNNER_TEMP" gitleaks
+          "$RUNNER_TEMP/gitleaks" git . --redact --no-banner --verbose --exit-code 1 --config .github/gitleaks.toml
+
+  check:
+    name: check
+    needs: secrets-scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          registry-url: https://npm.pkg.github.com
+          scope: '@pokbytes'
+          cache: npm
+      - run: npm ci --ignore-scripts
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - run: npm run format:check
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      # F5: the built extension loads in Chrome (headless new, no display needed)
+      - run: npx playwright install --with-deps chromium
+      - run: npm run smoke:background

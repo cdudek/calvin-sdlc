@@ -1,0 +1,148 @@
+/* ============================================================
+   OMR — Primitive colour palette (Layer 1)
+   Raw hex values. NEVER reference these directly in UI —
+   always use a semantic token from colors.css.
+   Source of truth: src/omrTheme/primitiveColors.generated.css
+   ============================================================ */
+
+:root {
+  /* Grey scale */
+  --color-grey-0: #ffffff;
+  --color-grey-25: #fdfdfd;
+  --color-grey-50: #f8f9fb;
+  --color-grey-100: #f3f4f6;
+  --color-grey-150: #ebecef;
+  --color-grey-200: #dfe1e5;
+  --color-grey-250: #d0d3d9;
+  --color-grey-300: #c0c4cc;
+  --color-grey-350: #a9aeb8;
+  --color-grey-400: #9197a3;
+  --color-grey-450: #7f8694;
+  --color-grey-500: #6c7380;
+  --color-grey-550: #5f6570;
+  --color-grey-600: #525862;
+  --color-grey-650: #434852;
+  --color-grey-700: #353a42;
+  --color-grey-750: #292c32;
+  --color-grey-800: #22242a;
+  --color-grey-850: #181b1f;
+  --color-grey-900: #121417;
+  --color-grey-950: #0c0d0f;
+  --color-grey-975: #060708;
+  --color-grey-1000: #000000;
+  --color-grey: var(--color-grey-500);
+
+  /* Brand — Purple (primary) */
+  --color-purple-25: #f9f7ff;
+  --color-purple-50: #f4f2ff;
+  --color-purple-100: #ebe8ff;
+  --color-purple-200: #d8d4ff;
+  --color-purple-300: #ada6fc;
+  --color-purple-400: #8e7bff;
+  --color-purple-500: #8259ff;   /* OMR Purple */
+  --color-purple-600: #7337fc;   /* Purple Dark */
+  --color-purple-700: #601ee3;   /* Purple Darker */
+  --color-purple-800: #4f18bf;   /* Purple Darkest */
+  --color-purple-900: #42169c;
+  --color-purple-950: #270b6a;
+  --color-purple: var(--color-purple-500);
+
+  /* Brand — Yellow (secondary) */
+  --color-yellow-50: #fef9e8;
+  --color-yellow-100: #fdf2c4;
+  --color-yellow-200: #fbe69c;
+  --color-yellow-300: #ffdb75;
+  --color-yellow-400: #f5c41c;   /* Yellow Light */
+  --color-yellow-500: #f2b200;   /* OMR Yellow */
+  --color-yellow-600: #e39807;
+  --color-yellow-700: #a6620a;
+  --color-yellow-800: #824a11;
+  --color-yellow-900: #6f3d14;
+  --color-yellow-950: #411f07;
+  --color-yellow: var(--color-yellow-500);
+
+  /* Brand — Mint (tertiary) */
+  --color-mint-50: #f1fcfb;
+  --color-mint-100: #cef9f5;
+  --color-mint-200: #a6ede8;
+  --color-mint-300: #80e0db;
+  --color-mint-400: #33cccc;
+  --color-mint-500: #00adad;     /* OMR Mint */
+  --color-mint-600: #008a8a;
+  --color-mint-700: #146c71;
+  --color-mint-800: #15555a;
+  --color-mint-900: #16474b;
+  --color-mint-950: #06292d;
+  --color-mint: var(--color-mint-500);
+
+  /* Blue */
+  --color-blue-25: #f5f8ff;
+  --color-blue-50: #eaf1ff;
+  --color-blue-100: #ccdeff;
+  --color-blue-200: #9dc3ff;
+  --color-blue-300: #66a1ff;
+  --color-blue-400: #4990ff;
+  --color-blue-500: #2977ff;     /* OMR Blue */
+  --color-blue-600: #0059ff;
+  --color-blue-700: #0048cc;
+  --color-blue-800: #00379e;
+  --color-blue-900: #00256a;
+  --color-blue-950: #001640;
+  --color-blue: var(--color-blue-500);
+
+  /* Red (error) */
+  --color-red-50: #fff1f2;
+  --color-red-100: #fee5e7;
+  --color-red-200: #fdced4;
+  --color-red-300: #fba6b2;
+  --color-red-400: #f77589;
+  --color-red-500: #ef4463;      /* Error Red */
+  --color-red-600: #dc224d;
+  --color-red-700: #b91740;
+  --color-red-800: #9b163c;
+  --color-red-900: #851639;
+  --color-red-950: #4a071b;
+  --color-red: var(--color-red-500);
+
+  /* Green (success) */
+  --color-green-50: #eafff6;
+  --color-green-100: #bfffd9;
+  --color-green-200: #9affc8;
+  --color-green-300: #66ffb2;
+  --color-green-400: #2dffa7;
+  --color-green-500: #00f58f;    /* Success Green */
+  --color-green-600: #00d67c;
+  --color-green-700: #00ad65;
+  --color-green-800: #00854d;
+  --color-green-900: #005c36;
+  --color-green-950: #004025;
+  --color-green: var(--color-green-500);
+
+  /* Jade (success semantic) */
+  --color-jade-50: #ecfdf7;
+  --color-jade-100: #d1fae9;
+  --color-jade-200: #a7f3d8;
+  --color-jade-300: #6ee7c3;
+  --color-jade-400: #34d3a9;
+  --color-jade-500: #10b992;     /* Jade */
+  --color-jade-600: #059678;
+  --color-jade-700: #047863;
+  --color-jade-800: #065f4f;
+  --color-jade-900: #064e42;
+  --color-jade-950: #022c26;
+  --color-jade: var(--color-jade-500);
+
+  /* Rose */
+  --color-rose-50: #ffeaf8;
+  --color-rose-100: #ffd2f1;
+  --color-rose-200: #ffb5e9;
+  --color-rose-300: #ff9be3;
+  --color-rose-400: #ff66cf;
+  --color-rose-500: #ff47c6;     /* Rose */
+  --color-rose-600: #ff1fb8;
+  --color-rose-700: #eb00a2;
+  --color-rose-800: #bd0081;
+  --color-rose-900: #8a005f;
+  --color-rose-950: #57003c;
+  --color-rose: var(--color-rose-500);
+}

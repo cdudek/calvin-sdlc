@@ -1,0 +1,151 @@
+/* ============================================================
+   OMR — Semantic colour utility classes
+   Real OMR class names mapped to semantic tokens, so designs
+   written with `bg-surface`, `text-main`, `border-error` render
+   correctly here. Adapts to [data-theme="dark"] automatically.
+   ============================================================ */
+
+/* Text */
+.text-main { color: var(--text-color-main); }
+.text-subtle { color: var(--text-color-subtle); }
+.text-subtlest { color: var(--text-color-subtlest); }
+.text-primary { color: var(--text-color-primary); }
+.text-primary-subtle { color: var(--text-color-primary-subtle); }
+.text-selected { color: var(--text-color-selected); }
+.text-solid { color: var(--text-color-solid); }
+.text-solid-inverse { color: var(--text-color-solid-inverse); }
+.text-inverse { color: var(--text-color-inverse); }
+.text-disabled { color: var(--text-color-disabled); }
+.text-error { color: var(--text-color-error); }
+.text-error-inverse { color: var(--text-color-error-inverse); }
+.text-success { color: var(--text-color-success); }
+.text-success-inverse { color: var(--text-color-success-inverse); }
+.text-warning { color: var(--text-color-warning); }
+.text-warning-inverse { color: var(--text-color-warning-inverse); }
+
+/* Icon */
+.text-icon-main { color: var(--text-color-icon-main); }
+.text-icon-subtle { color: var(--text-color-icon-subtle); }
+.text-icon-subtlest { color: var(--text-color-icon-subtlest); }
+.text-icon-primary { color: var(--text-color-icon-primary); }
+.text-icon-primary-subtle { color: var(--text-color-icon-primary-subtle); }
+.text-icon-secondary { color: var(--text-color-icon-secondary); }
+.text-icon-secondary-subtle { color: var(--text-color-icon-secondary-subtle); }
+.text-icon-selected { color: var(--text-color-icon-selected); }
+.text-icon-inverse { color: var(--text-color-icon-inverse); }
+.text-icon-disabled { color: var(--text-color-icon-disabled); }
+.text-icon-error { color: var(--text-color-icon-error); }
+.text-icon-error-inverse { color: var(--text-color-icon-error-inverse); }
+.text-icon-success { color: var(--text-color-icon-success); }
+.text-icon-success-inverse { color: var(--text-color-icon-success-inverse); }
+.text-icon-warning { color: var(--text-color-icon-warning); }
+.text-icon-warning-inverse { color: var(--text-color-icon-warning-inverse); }
+.text-icon-solid { color: var(--text-color-icon-solid); }
+.text-icon-solid-inverse { color: var(--text-color-icon-solid-inverse); }
+.text-icon-badge-filled-error { color: var(--text-color-icon-badge-filled-error); }
+.text-icon-badge-filled-success { color: var(--text-color-icon-badge-filled-success); }
+.text-icon-badge-filled-warning { color: var(--text-color-icon-badge-filled-warning); }
+
+/* Link */
+.text-link-main { color: var(--text-color-link-main); }
+.text-link-primary { color: var(--text-color-link-primary); }
+.text-link-inverse { color: var(--text-color-link-inverse); }
+.text-link-disabled { color: var(--text-color-link-disabled); }
+
+/* Surface / background */
+.bg-surface { background-color: var(--background-color-surface); }
+.bg-solid { background-color: var(--background-color-solid); }
+.bg-surface-elevation-1 { background-color: var(--background-color-surface-elevation-1); }
+.bg-surface-elevation-2 { background-color: var(--background-color-surface-elevation-2); }
+.bg-surface-elevation-3 { background-color: var(--background-color-surface-elevation-3); }
+.bg-surface-elevation-4 { background-color: var(--background-color-surface-elevation-4); }
+.bg-surface-elevation-5 { background-color: var(--background-color-surface-elevation-5); }
+.bg-surface-inverse { background-color: var(--background-color-surface-inverse); }
+.bg-primary-main { background-color: var(--background-color-primary-main); }
+.bg-primary-strong { background-color: var(--background-color-primary-strong); }
+.bg-primary-stronger { background-color: var(--background-color-primary-stronger); }
+.bg-primary-strongest { background-color: var(--background-color-primary-strongest); }
+.bg-primary-subtle { background-color: var(--background-color-primary-subtle); }
+.bg-primary-subtler { background-color: var(--background-color-primary-subtler); }
+.bg-primary-subtlest { background-color: var(--background-color-primary-subtlest); }
+.bg-secondary-main { background-color: var(--background-color-secondary-main); }
+.bg-secondary-strong { background-color: var(--background-color-secondary-strong); }
+.bg-secondary-stronger { background-color: var(--background-color-secondary-stronger); }
+.bg-secondary-strongest { background-color: var(--background-color-secondary-strongest); }
+.bg-secondary-subtle { background-color: var(--background-color-secondary-subtle); }
+.bg-secondary-subtler { background-color: var(--background-color-secondary-subtler); }
+.bg-secondary-subtlest { background-color: var(--background-color-secondary-subtlest); }
+.bg-error-strong { background-color: var(--background-color-error-strong); }
+.bg-error-subtle { background-color: var(--background-color-error-subtle); }
+.bg-success-strong { background-color: var(--background-color-success-strong); }
+.bg-success-subtle { background-color: var(--background-color-success-subtle); }
+.bg-warning-strong { background-color: var(--background-color-warning-strong); }
+.bg-warning-subtle { background-color: var(--background-color-warning-subtle); }
+.bg-disabled { background-color: var(--background-color-disabled); }
+
+/* Borders (add `.border` for 1px) */
+.border { border-width: 1px; border-style: solid; border-color: var(--border-color-main); }
+.border-2 { border-width: 2px; border-style: solid; border-color: var(--border-color-main); }
+.border-main { border-color: var(--border-color-main); }
+.border-main-solid { border-color: var(--border-color-main-solid); }
+.border-subtle { border-color: var(--border-color-subtle); }
+.border-strong { border-color: var(--border-color-strong); }
+.border-primary { border-color: var(--border-color-primary); }
+.border-primary-solid { border-color: var(--border-color-primary-solid); }
+.border-primary-subtle { border-color: var(--border-color-primary-subtle); }
+.border-secondary { border-color: var(--border-color-secondary); }
+.border-secondary-subtle { border-color: var(--border-color-secondary-subtle); }
+.border-selected { border-color: var(--border-color-selected); }
+.border-error { border-color: var(--border-color-error); }
+.border-error-subtle { border-color: var(--border-color-error-subtle); }
+.border-success { border-color: var(--border-color-success); }
+.border-success-subtle { border-color: var(--border-color-success-subtle); }
+.border-warning { border-color: var(--border-color-warning); }
+.border-warning-subtle { border-color: var(--border-color-warning-subtle); }
+.border-disabled { border-color: var(--border-color-disabled); }
+.border-inverse { border-color: var(--border-color-inverse); }
+
+/* Graphic fills */
+.graphic-black { color: var(--graphic-color-black); }
+.graphic-white { color: var(--graphic-color-white); }
+.graphic-grey-subtle { color: var(--graphic-color-grey-subtle); }
+.graphic-grey-medium { color: var(--graphic-color-grey-medium); }
+.graphic-grey-strong { color: var(--graphic-color-grey-strong); }
+.graphic-primary-subtle { color: var(--graphic-color-primary-subtle); }
+.graphic-primary-medium { color: var(--graphic-color-primary-medium); }
+.graphic-primary-strong { color: var(--graphic-color-primary-strong); }
+.graphic-secondary-subtle { color: var(--graphic-color-secondary-subtle); }
+.graphic-secondary-medium { color: var(--graphic-color-secondary-medium); }
+.graphic-secondary-strong { color: var(--graphic-color-secondary-strong); }
+.graphic-tertiary-subtle { color: var(--graphic-color-tertiary-subtle); }
+.graphic-tertiary-medium { color: var(--graphic-color-tertiary-medium); }
+.graphic-tertiary-strong { color: var(--graphic-color-tertiary-strong); }
+.graphic-success { color: var(--graphic-color-success); }
+.graphic-error { color: var(--graphic-color-error); }
+.graphic-warning { color: var(--graphic-color-warning); }
+
+/* ============================================================
+   State layers — hover / press / drag overlays.
+   Put on small interactive atoms (chips, rows, icon buttons).
+   ============================================================ */
+.state-layer { position: relative; overflow: hidden; z-index: 0; }
+.state-layer::before { content: ''; position: absolute; inset: 0; opacity: 0; z-index: -1; pointer-events: none; transition: opacity 150ms ease-in-out; }
+.state-layer-neutral { position: relative; overflow: hidden; z-index: 0; }
+.state-layer-neutral::before { content: ''; position: absolute; inset: 0; opacity: 0; z-index: -1; pointer-events: none; transition: opacity 150ms ease-in-out; background-color: var(--background-color-state-hover-neutral); }
+.state-layer-neutral:hover:not(:disabled)::before { opacity: 1; background-color: var(--background-color-state-hover-neutral); }
+.state-layer-neutral:active:not(:disabled)::before { opacity: 1; background-color: var(--background-color-state-pressed-neutral); }
+.state-layer-primary { position: relative; overflow: hidden; z-index: 0; }
+.state-layer-primary::before { content: ''; position: absolute; inset: 0; opacity: 0; z-index: -1; pointer-events: none; transition: opacity 150ms ease-in-out; background-color: var(--background-color-state-hover-primary); }
+.state-layer-primary:hover:not(:disabled)::before { opacity: 1; background-color: var(--background-color-state-hover-primary); }
+.state-layer-primary:active:not(:disabled)::before { opacity: 1; background-color: var(--background-color-state-pressed-primary); }
+.state-layer-neutral-inverse { position: relative; overflow: hidden; z-index: 0; }
+.state-layer-neutral-inverse::before { content: ''; position: absolute; inset: 0; opacity: 0; z-index: -1; pointer-events: none; transition: opacity 150ms ease-in-out; }
+.state-layer-neutral-inverse:hover:not(:disabled)::before { opacity: 1; background-color: var(--background-color-state-hover-neutral-inverse); }
+.state-layer-neutral-inverse:active:not(:disabled)::before { opacity: 1; background-color: var(--background-color-state-pressed-neutral-inverse); }
+
+/* Focus ring */
+.omr-focus-visible-outline:focus-visible { outline: 2px solid var(--background-color-effect-focused); outline-offset: 2px; }
+.omr-focus-visible-inset:focus-visible { outline: 2px solid var(--background-color-effect-focused); outline-offset: -2px; }
+
+/* Modal backdrop */
+.blur-overlay-style { background-color: var(--background-color-effect-backdrop-overlay); backdrop-filter: blur(4px); }

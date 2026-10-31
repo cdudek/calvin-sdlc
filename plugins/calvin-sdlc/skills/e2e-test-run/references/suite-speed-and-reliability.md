@@ -1,0 +1,147 @@
+# Suite speed and reliability
+
+Use this before tuning a suite, replacing its data or diagnosing a wave of failures.
+Measure the cost, establish a control, then fix the code, harness or fixture responsible.
+For fixture failure classification and temporary probes, read
+`../../flaky-test-fix/references/controlled-diagnosis.md`.
+
+## A. Measure before changing anything
+
+Collect per-test durations from a full run with the list or JSON reporter. Sort them by
+duration. Attribute and sum the time spent on app startup, fixed sleeps, tests that exhaust
+their timeout and slow assertions. Record launch counts as well as launch duration. Never
+guess the bottleneck. Compare the same measurements after each change.
+
+For example, startup can take 5–6 seconds on a production-sized fixture against about one
+second on a small one. Across roughly 700 launches, that dominates sleeps totalling less
+than three minutes. Yet failing tests that exhaust 90–300 second timeouts can cost more
+than either. The largest number in the report decides what to investigate first.
+
+## B. Fail fast first
+
+Triage red tests before tuning passing ones. A timed-out test costs its entire timeout;
+20 timeouts can cost more than 500 passing tests. Find why the expected event never arrives.
+Use the repair boundaries in section J; a longer wait only makes this sink larger.
+
+## C. Establish a control before diagnosis
+
+When many tests fail the same way, rerun one on a clean checkout of the base branch before
+blaming the change. Check environment parity: build output, bundled runtime binaries,
+dependencies and required untracked files. A fresh worktree does not inherit all of these.
+Record the branch, setup and result of the control run.
+
+For example, 22 send tests can time out because a bundled media runtime binary was not
+linked into a new worktree, while all 23 pass on the clean base in four minutes. That is a
+harness setup failure. Repair parity before diagnosing product code.
+
+## D. Build a small, deterministic fixture once
+
+Build a synthetic fixture once per run in Playwright `globalSetup`. Derive every row from
+what the specs need. Never clone a production-sized dataset or a real user's personal data
+for the default fixture. This cuts repeated startup work and makes failures reproducible.
+
+Keep the real-data path behind an opt-in environment variable for comparison runs. Keep
+that data out of committed fixtures. Unit-test the synthetic fixture's invariants: every
+id the specs address exists, at least one full record exists, and referenced files exist.
+Use a short fixture folder path; long temporary paths can themselves cause layout failures.
+Keep the generated seed immutable and isolate each worker's mutations as `strategy.md`
+section 6 requires. Failure classification belongs in
+`../../flaky-test-fix/references/controlled-diagnosis.md` section E.
+
+## F. Treat machine load as a test input
+
+Run one e2e suite at a time on a shared machine, behind a machine-wide lock that covers
+every worktree and runner. Before starting, require both the 1- and 5-minute load averages
+to be below a documented threshold calibrated for that machine. Record load and worker
+count with the result. Other work can double durations and turn passes into timeouts;
+adding workers on an already loaded machine makes this worse.
+
+Run gates in a quiet window or on a dedicated machine. There, measure higher worker counts:
+for example, six workers instead of three on 14 cores can halve wall time. Do not treat
+that example as a universal setting. Keep isolated ports, databases and logs even when
+the lock serializes suites; isolation and resource capacity solve different problems.
+
+## G. Repeat the risky specs, not the whole suite
+
+For a gate, run the full suite once. Then run only the union of spec files changed in the
+diff against the gate's base and a committed flaky list with `--repeat-each=3`. Deduplicate
+the paths. An empty union needs no repeat run. Repeating the entire suite triples a long
+run without concentrating evidence where risk changed.
+
+Use `e2e/flaky-specs.txt` for the list: one repo-relative spec path per line, followed by
+`# reason`. Ignore blank lines and comment-only lines; strip comments before passing paths
+to the runner. Each entry explains why it still needs repeats. For example:
+
+```text
+e2e/navigation.spec.ts # navigation race under investigation
+```
+
+Keep failures visible. Repeats collect reliability evidence; they never turn a failed first
+run into a passing gate. Targeted calibration during diagnosis is separate from this gate
+policy (`waiting.md` section 11).
+
+## H. Parallel workers with isolated data
+
+One worker is only forced when every test shares one set of data. Give each worker its own
+tenant instead. A worker-scoped fixture creates one tenant (or org) per worker, keyed on
+`workerInfo.parallelIndex`, which is stable for the worker's life and unique among live
+workers. Each test then seeds and reads only inside that tenant.
+
+```ts
+export const test = base.extend<{ tenant: Tenant }, { workerTenant: Tenant }>({
+  workerTenant: [
+    async ({}, use, workerInfo) => {
+      const name = `e2e-w${workerInfo.parallelIndex}`
+      await api.deleteTenantByName(name) // a crashed run's leftover, if any
+      const tenant = await api.createTenant(name)
+      await use(tenant)
+      await api.deleteTenant(tenant.id)
+    },
+    { scope: 'worker' },
+  ],
+  tenant: async ({ workerTenant }, use) => use(workerTenant),
+})
+```
+
+Name tenants by `parallelIndex`, never by random id, so a crashed run's leftovers are found
+and replaced. Seed per test inside `tenant` and clean up what the test made. Once nothing
+reads outside its tenant, raise `workers` above 1 and set `fullyParallel: true`. Shared
+singletons (one mailbox, one global setting) still need a lock or a serial project.
+Tenant names are unique per database, not per machine, so each worktree keeps its own
+database (section F). Pick the worker count on a quiet machine, as section F says.
+
+## I. Known traps
+
+1. **Entrance motion breaks “holds still” assertions.** A bounding box sampled mid-transform
+   is moving. Fix the motion, for example by fading in place, rather than weakening the
+   geometry assertion.
+2. **Synthetic keys exercise the renderer path.** Playwright's keyboard sends events over
+   the DevTools protocol. In Electron they do not reach native menu accelerators. A shortcut
+   bound in both the menu and renderer is tested only through the renderer binding. Record
+   that coverage limit; use a native input harness to prove the accelerator path.
+3. **Deferred routing leaves commands on the old screen.** A command issued before a deferred
+   transition commits can act on the previous route. Commit navigation at once where commands
+   depend on the current route. Repair the product race.
+4. **Two invocations can overwrite one JSON report.** A script may run parallel tests and
+   focus-bound tests separately. Give each Playwright invocation its own reporter output
+   name, or the second run destroys the first run's timing and failure evidence.
+5. **Tracked evidence files dirty the tree.** Tests that rewrite tracked screenshots can
+   break gates requiring a clean tree. Write routine evidence to an ignored folder. Updating
+   tracked evidence must be an explicit capture mode.
+6. **Background sweeps need observable completion.** Wait on an app-observable signal that
+   the sweep is finished before snapshotting device reads. A sleep samples a different
+   partial result on each dataset, so its diff cannot be stable.
+7. **Request counts must match the designed protocol.** If the app sends counts and then
+   options, assert both requests. Counting only the first phase mislabels correct behaviour
+   as a duplicate request bug.
+
+## J. Repair boundaries
+
+Never raise a timeout, add a sleep or wait just to pass, loosen an assertion, skip a test,
+or add application key handling solely to satisfy a test. These changes hide the cause
+and weaken the gate. An assertion on an observable completion signal is synchronization,
+not a delay added to get green (`waiting.md`).
+
+Fix the code, the harness or the fixture, and say which one changed and why. If the current
+workflow cannot edit product code, file the defect and leave the test red for the authorized
+product fix. A correct failing test is evidence to preserve.

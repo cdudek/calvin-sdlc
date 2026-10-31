@@ -1,0 +1,39 @@
+<!-- @dsCard group="Spacing" viewport="760x420" name="Radius scale" subtitle="Both colour worlds · roles as in omr-js core-ui · card rounded-sm (4px)" -->
+<!DOCTYPE html>
+<html lang="de" data-theme="light"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+body{margin:0;padding:20px;background:var(--background-color-surface);color:var(--text-color-main);font-family:var(--font-sans)}
+.scale{display:flex;gap:18px;flex-wrap:wrap}
+.it{display:flex;flex-direction:column;gap:6px;align-items:center}
+.sh{width:72px;height:56px;background:var(--background-color-primary-subtle);border:1px solid var(--border-color-primary-subtle)}
+.tok{font-family:var(--font-mono);font-size:11px;color:var(--text-color-subtlest)}
+.val{font-size:11px;color:var(--text-color-subtlest)}
+table{border-collapse:collapse;width:100%;font-size:12px;margin-top:22px}
+th{text-align:left;font-size:11px;font-weight:700;color:var(--text-color-subtlest);padding:0 12px 6px 0;border-bottom:1px solid #d0d3d9}
+td{padding:6px 12px 6px 0;border-bottom:1px solid #ebecef;vertical-align:top;line-height:1.4}
+td.m{font-family:var(--font-mono);font-size:11px;white-space:nowrap}
+p{font-size:12px;color:var(--text-color-subtle);margin:14px 0 0;line-height:1.5}
+</style></head><body>
+<div class="scale">
+<div class="it"><div class="sh" style="border-radius:var(--radius-xs)"></div><span class="tok">rounded-xs</span><span class="val">2px</span></div>
+<div class="it"><div class="sh" style="border-radius:var(--radius-sm);outline:2px solid var(--border-color-selected);outline-offset:2px"></div><span class="tok">rounded-sm</span><span class="val">4px</span></div>
+<div class="it"><div class="sh" style="border-radius:var(--radius-md)"></div><span class="tok">rounded-md</span><span class="val">6px</span></div>
+<div class="it"><div class="sh" style="border-radius:var(--radius-lg)"></div><span class="tok">rounded-lg</span><span class="val">8px</span></div>
+<div class="it"><div class="sh" style="border-radius:var(--radius-xl)"></div><span class="tok">rounded-xl</span><span class="val">12px</span></div>
+<div class="it"><div class="sh" style="border-radius:var(--radius-2xl)"></div><span class="tok">rounded-2xl</span><span class="val">16px</span></div>
+<div class="it"><div class="sh" style="border-radius:var(--radius-3xl)"></div><span class="tok">rounded-3xl</span><span class="val">24px</span></div>
+<div class="it"><div class="sh" style="border-radius:var(--radius-4xl)"></div><span class="tok">rounded-4xl</span><span class="val">32px</span></div>
+</div>
+<table><thead><tr><th>Role, UI and editorial</th><th>Token</th><th>Value</th></tr></thead><tbody>
+<tr><td>Chips, badges</td><td class="m">--radius-chip</td><td class="m">2px</td></tr>
+<tr><td>Buttons xs, s</td><td class="m">--radius-button-compact</td><td class="m">6px</td></tr>
+<tr><td>Buttons m, l</td><td class="m">--radius-button</td><td class="m">8px</td></tr>
+<tr><td>Tag chips, counters, avatars</td><td class="m">--radius-pill</td><td class="m">full</td></tr>
+<tr><td>Inputs, swatches, small tiles</td><td class="m">--radius-control</td><td class="m">4px</td></tr>
+<tr><td>Cards, boxes, callouts, quote boxes, table, chart and image containers</td><td class="m">--radius-card</td><td class="m">4px</td></tr>
+<tr><td>Large marketing containers, image surfaces social/poster</td><td class="m">--radius-surface-lg</td><td class="m">24px</td></tr>
+<tr><td>Hero surfaces</td><td class="m">--radius-hero</td><td class="m">32px</td></tr>
+</tbody></table>
+<p>Only the page/slide in the bleed, the highlight bar and the bullet square stay square. Only colour is separated between the colour worlds (CLAUDE.md §3a).</p>
+</body></html>

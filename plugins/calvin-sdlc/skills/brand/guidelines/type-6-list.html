@@ -1,0 +1,160 @@
+<!-- @dsCard group="Type" viewport="880x1280" name="Bullets & numbering" subtitle="Purple Strong square · bare digit 01 02 03 · Störer only large" -->
+<!DOCTYPE html>
+<html lang="de" data-theme="light"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+body{margin:0;padding:24px;background:var(--background-color-surface);color:var(--text-color-main);font-family:var(--font-sans)}
+h3{font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--text-color-subtlest);margin:0 0 12px}
+section{margin-bottom:28px}
+.lead{font-size:13px;line-height:1.55;color:var(--text-color-subtle);margin:0 0 14px;max-width:86ch}
+.meta{color:var(--text-color-subtlest);font-size:11px;font-family:var(--font-mono)}
+.hex{font-family:var(--font-mono);font-size:11px;font-weight:700}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.three{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.narrow{max-width:320px}
+.on{padding:18px 20px;border-radius:var(--radius-xl);border:1px solid var(--border-color-main)}
+.on .omr-list li,.on .omr-list-numbered li{font-size:15px;line-height:1.5}
+.dark{background:#000000;border-color:transparent;color:#ffffff}
+.purple{background:#8259ff;border-color:transparent;color:#ffffff}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th{text-align:left;font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--text-color-subtlest);padding:0 12px 8px 0;border-bottom:1px solid var(--border-color-main-solid)}
+td{padding:9px 12px 9px 0;border-bottom:1px solid var(--border-color-subtle);vertical-align:top;line-height:1.45}
+.dont{border:1px solid var(--border-color-main);border-radius:var(--radius-xl);padding:14px 16px;font-size:13px;line-height:1.55;color:var(--text-color-subtle)}
+.dont b{color:var(--text-color-main);font-weight:600}
+</style></head><body>
+
+<section>
+<h3>Bullets</h3>
+<p class="lead">Bullet lists carry a small square in Purple Strong <span class="hex">#8259ff</span>. Square side 0.42 em, no rounding, indent 1.04 em. The marker sits on the cap centre of the first line and stays there for multi-line entries. Class <span class="meta">.omr-list</span>.</p>
+<div class="two">
+  <div class="on">
+    <ul class="omr-list">
+      <li>Ärztliche Übersichtsstudien und Fachbeiträge, die über mehrere Zeilen laufen, behalten den Marker in der ersten Zeile und setzen den Text auf der Einzugskante fort.</li>
+      <li>Kurzer Eintrag</li>
+      <li>Öffentliche Ausschreibungen
+        <ul class="omr-list">
+          <li>Zweite Ebene in Purple Medium <span class="hex">#8e7bff</span></li>
+          <li>Noch ein Eintrag auf der zweiten Ebene
+            <ul class="omr-list"><li>Dritte Ebene in Purple Soft <span class="hex">#ada6fc</span></li></ul>
+          </li>
+        </ul>
+      </li>
+    </ul>
+  </div>
+  <div class="on narrow">
+    <ul class="omr-list">
+      <li>Narrowest realistic column with the longest label the layout has to carry without breaking</li>
+      <li>Second item</li>
+      <li>Überprüfbare Kennzahlen je Anbieter</li>
+    </ul>
+    <p class="meta" style="margin:14px 0 0">narrowest width · de + en</p>
+  </div>
+</div>
+</section>
+
+<section>
+<h3>On a dark background</h3>
+<div class="two">
+  <div class="on dark">
+    <ul class="omr-list on-dark">
+      <li>On black and on Purple Strong the marker is <span class="hex">#ffffff</span>.</li>
+      <li>There is no overlap with the neighbouring line; the marker is smaller than the cap height.</li>
+    </ul>
+  </div>
+  <div class="on purple">
+    <ul class="omr-list on-dark">
+      <li>The same rule on <span class="hex">#8259ff</span>.</li>
+      <li>No purple marker on purple.</li>
+    </ul>
+  </div>
+</div>
+</section>
+
+<section>
+<h3>Numbering — default: bare digit</h3>
+<p class="lead">The default is the bare digit: two digits with a leading zero, Purple Strong, OMR One Extrabold, tabular figures, without surface. This is also the default form of chapter numbers in the table of contents. Class <span class="meta">.omr-list-numbered</span>.</p>
+<div class="two">
+  <div class="on">
+    <ol class="omr-list-numbered">
+      <li>Erster Schritt, der über zwei Zeilen läuft und zeigt, dass die Ziffer auf der Grundlinie der ersten Zeile sitzt und der Text auf der Einzugskante weiterläuft.</li>
+      <li>Zweiter Schritt</li>
+      <li>Überprüfbare Kennzahlen je Anbieter</li>
+    </ol>
+    <p class="meta" style="margin:14px 0 0">Default</p>
+  </div>
+  <div class="on dark">
+    <ol class="omr-list-numbered on-dark">
+      <li>On black and on Purple Strong the digit is white.</li>
+      <li>Zweiter Schritt</li>
+      <li>Dritter Schritt</li>
+    </ol>
+    <p class="meta" style="margin:14px 0 0;color:#9197a3">.on-dark</p>
+  </div>
+</div>
+</section>
+
+<section>
+<h3>Large numbering — Störer</h3>
+<p class="lead">The <b>Numbered Super-Nova</b> is the shape for large numbering: three steps above boxes placed side by side, chapter openers, single large numbers. Side length 2.2 em, digit in text size. Free-standing as <span class="meta">.omr-number-nova</span>, as a list via <span class="meta">.omr-list-numbered.nova</span>. In small numbered lists it is not set.</p>
+<div class="three">
+  <div class="on">
+    <span class="omr-number-nova" style="font-size:28px">1</span>
+    <p style="font-size:15px;line-height:1.5;margin:14px 0 0"><b>Bedarf klären.</b> Die Zahl steht über der Box, nicht in der Zeile.</p>
+  </div>
+  <div class="on">
+    <span class="omr-number-nova" style="font-size:28px">2</span>
+    <p style="font-size:15px;line-height:1.5;margin:14px 0 0"><b>Anbieter vergleichen.</b> Drei Boxen nebeneinander, drei Zahlen.</p>
+  </div>
+  <div class="on">
+    <span class="omr-number-nova" style="font-size:28px">3</span>
+    <p style="font-size:15px;line-height:1.5;margin:14px 0 0"><b>Entscheiden.</b> On black the shape turns white, the digit black.</p>
+  </div>
+</div>
+</section>
+
+<section>
+<h3>Fallback form — badge</h3>
+<p class="lead">The square badge <span class="meta">.badge</span> carries a number that needs a surface to separate from its surroundings: numbers in running text, cells, markers on an image. Quiet variant <span class="meta">.quiet</span>.</p>
+<div class="two">
+  <div class="on narrow">
+    <ol class="omr-list-numbered badge">
+      <li>Badge in der schmalsten realistischen Spalte, zweizeilig.</li>
+      <li>Zweiter Schritt</li>
+      <li>Dritter Schritt</li>
+    </ol>
+    <p class="meta" style="margin:14px 0 0">.badge</p>
+  </div>
+  <div class="on">
+    <ol class="omr-list-numbered badge quiet">
+      <li>Stille Variante für textlastige Seiten und Whitepaper.</li>
+      <li>Zweiter Schritt</li>
+      <li>Dritter Schritt</li>
+    </ol>
+    <p class="meta" style="margin:14px 0 0">.badge.quiet</p>
+  </div>
+</div>
+</section>
+
+<section>
+<h3>Values</h3>
+<table>
+<thead><tr><th style="width:230px">Value</th><th style="width:120px">Token</th><th>Meaning</th></tr></thead>
+<tbody>
+<tr><td>Square side</td><td class="meta">0.42em</td><td>scales with the text size, no pixel values</td></tr>
+<tr><td>Distance marker to text</td><td class="meta">0.62em</td><td>The indent is the sum, 1.04 em</td></tr>
+<tr><td>Vertical position</td><td class="meta">0.5lh − h/2 − 0.011em</td><td>Cap centre, derived from the OMR One metrics</td></tr>
+<tr><td>Distance between entries</td><td class="meta">0.5em</td><td>applies to bullets and numbering</td></tr>
+<tr><td>Bare digit</td><td class="meta">01, 02, 03</td><td>Purple Strong, Extrabold 800, tabular figures — default</td></tr>
+<tr><td>Störer numbering</td><td class="meta">2.2em</td><td>super-nova filled, digit in text size — large numbering only</td></tr>
+<tr><td>Badge numbering</td><td class="meta">1.8em</td><td>Digit in text size, radius 4 px — fallback form</td></tr>
+<tr><td>Level colours</td><td class="meta">#8259ff · #8e7bff · #ada6fc</td><td>Purple stays the family, only the step changes</td></tr>
+</tbody>
+</table>
+</section>
+
+<section>
+<h3>Not permitted</h3>
+<div class="dont">No round dots, dashes, ticks or icons as markers. <b>No second colour family in the same list</b>, Mint and Yellow are not bullet colours. No purple marker on a purple background. <b>No Störer in small numbered lists</b> — there the bare digit stands; no Störer shape other than <span class="meta">super-nova</span> for numbers, no digit that leaves the safe inner area. Markers and numbers do not count against the colour budget but replace no accent colour: a purple square justifies no second purple accent on the same surface.</div>
+</section>
+
+</body></html>

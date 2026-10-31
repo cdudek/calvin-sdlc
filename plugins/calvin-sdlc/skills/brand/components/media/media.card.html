@@ -1,0 +1,122 @@
+<!-- @dsCard group="Components" viewport="700x520" name="Icons (Lucide)" subtitle="Lucide icon set · full icon-colour system (config-tailwind) · sizes · brand glyphs" -->
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/lucide@0.544.0/dist/umd/lucide.js"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>
+  body { margin: 0; padding: 24px; background: var(--background-color-surface); }
+  .lbl { display: block; margin: 0 0 12px; color: var(--text-color-subtlest); }
+  .row { display: flex; flex-wrap: wrap; gap: 20px; align-items: center; margin-bottom: 24px; }
+  .cgrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px 18px; margin-bottom: 24px; }
+  .cell { display: flex; align-items: center; gap: 10px; }
+  .cell .sw { display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 10px; background: var(--background-color-surface-elevation-2); border: 1px solid var(--border-color-subtle); flex: none; }
+  .cell.inv .sw { background: var(--background-color-surface-inverse); }
+  .tok { font-family: var(--font-mono); font-size: 11px; color: var(--text-color-subtle); line-height: 1.3; }
+  .sizes { display: flex; align-items: flex-end; gap: 28px; }
+  .size { display: flex; flex-direction: column; align-items: center; gap: 8px; color: var(--text-color-icon-main); }
+  .size .tok { text-align: center; }
+  .brand { display:flex; gap:20px; align-items:center; flex-wrap: wrap; }
+  .brand img { width: 26px; height: 26px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { Icon } = window.OMRDesignSystem_d9b3c2;
+
+// Full icon-colour system — exactly the tokens defined in omr-js/packages/config-tailwind
+const ICON_COLORS = [
+  ['text-icon-main', 'main'],
+  ['text-icon-subtle', 'subtle'],
+  ['text-icon-subtlest', 'subtlest'],
+  ['text-icon-disabled', 'disabled'],
+  ['text-icon-primary', 'primary'],
+  ['text-icon-primary-subtle', 'primary-subtle'],
+  ['text-icon-secondary', 'secondary'],
+  ['text-icon-secondary-subtle', 'secondary-subtle'],
+  ['text-icon-selected', 'selected'],
+  ['text-icon-solid', 'solid'],
+  ['text-icon-error', 'error'],
+  ['text-icon-success', 'success'],
+  ['text-icon-warning', 'warning'],
+  ['text-icon-badge-filled-error', 'badge-filled-error'],
+  ['text-icon-badge-filled-success', 'badge-filled-success'],
+  ['text-icon-badge-filled-warning', 'badge-filled-warning'],
+];
+// Rendered on an inverse surface (meant for dark backgrounds)
+const ICON_COLORS_INVERSE = [
+  ['text-icon-inverse', 'inverse'],
+  ['text-icon-solid-inverse', 'solid-inverse'],
+  ['text-icon-error-inverse', 'error-inverse'],
+  ['text-icon-success-inverse', 'success-inverse'],
+  ['text-icon-warning-inverse', 'warning-inverse'],
+];
+
+// Lucide size utilities from config-tailwind/styles/lucide-icons.css
+const SIZES = [['xs', 12], ['s', 16], ['m', 24], ['l', 32], ['xl', 48]];
+
+const names = ['search','house','user','settings','bell','heart','bookmark','share-2','arrow-right','chevron-down','plus','check','x','calendar','star','filter','play','download','mail','external-link'];
+
+function Demo() {
+  return (
+    <div>
+      <span className="txt-label-s-bold-uppercase lbl">Lucide — stroke icons (currentColor, stroke-width 2)</span>
+      <div className="row text-icon-main">
+        {names.map(n => <Icon key={n} name={n} size={24}/>)}
+      </div>
+
+      <span className="txt-label-s-bold-uppercase lbl">Sizes — lucide-icon-{'{xs·s·m·l·xl}'} = 12 · 16 · 24 · 32 · 48</span>
+      <div className="sizes" style={{marginBottom: 28}}>
+        {SIZES.map(([n, px]) => (
+          <div className="size" key={n}>
+            <Icon name="star" size={px}/>
+            <span className="tok">{n}<br/>{px}px</span>
+          </div>
+        ))}
+      </div>
+
+      <span className="txt-label-s-bold-uppercase lbl">Icon colours — config-tailwind theme tokens</span>
+      <div className="cgrid">
+        {ICON_COLORS.map(([cls, label]) => (
+          <div className="cell" key={cls}>
+            <span className={`sw ${cls}`}><Icon name="star" size={22}/></span>
+            <span className="tok">{label}</span>
+          </div>
+        ))}
+      </div>
+
+      <span className="txt-label-s-bold-uppercase lbl">Inverse — for dark / solid surfaces</span>
+      <div className="cgrid">
+        {ICON_COLORS_INVERSE.map(([cls, label]) => (
+          <div className="cell inv" key={cls}>
+            <span className={`sw ${cls}`}><Icon name="star" size={22}/></span>
+            <span className="tok">{label}</span>
+          </div>
+        ))}
+      </div>
+
+      <span className="txt-label-s-bold-uppercase lbl">OMR custom brand glyphs (SVG)</span>
+      <div className="brand">
+        <img src="../../assets/social/x.svg" alt="X"/>
+        <img src="../../assets/social/linkedin.svg" alt="LinkedIn"/>
+        <img src="../../assets/social/instagram.svg" alt="Instagram"/>
+        <img src="../../assets/social/youtube.svg" alt="YouTube"/>
+        <img src="../../assets/social/spotify.svg" alt="Spotify"/>
+        <img src="../../assets/social/tiktok.svg" alt="TikTok"/>
+        <img src="../../assets/social/whatsapp.svg" alt="WhatsApp"/>
+        <img src="../../assets/social/xing.svg" alt="Xing"/>
+      </div>
+    </div>
+  );
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<Demo/>);
+</script>
+</body>
+</html>

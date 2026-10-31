@@ -1,0 +1,23 @@
+/* ============================================================
+   OMR — Base element defaults
+   Minimal reset + sensible element defaults on the token system.
+   ============================================================ */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: var(--text-base-line-height);
+  color: var(--text-color-main);
+  background-color: var(--background-color-surface);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Links default to the OMR palette so undefined links never render browser-blue */
+a { color: var(--text-color-link-primary); text-decoration: none; }
+a:hover { text-decoration: underline; text-decoration-thickness: 0.08em; text-underline-offset: 0.15em; }
+
+::selection { background-color: var(--background-color-primary-subtle); color: var(--text-color-main); }

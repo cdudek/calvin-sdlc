@@ -1,0 +1,111 @@
+name: CI
+
+on:
+  pull_request:
+    # edited and labeled too, so retitling a PR or adding the major label re-runs the checks
+    types: [opened, edited, synchronize, reopened, labeled, unlabeled]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+# One job per check, so a PR shows exactly which one failed (owner, 2026-10-27).
+# Ubuntu, not macOS: macOS minutes cost 10x on private repos. Releases build on macOS.
+jobs:
+  pr-title:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      # The squash commit takes the PR title, and semantic-release reads it to choose the next version,
+      # so the title must be a Conventional Commit: feat: → minor, fix: → patch, feat!: → major, docs:/chore:/ci: → none.
+      - uses: amannn/action-semantic-pull-request@v6
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # A major version is the owner's call: "!" in the title or BREAKING CHANGE in the body (the squash commit's
+      # message, as a "BREAKING CHANGE:" line) needs the "major" label, and only people with write access to the repo can add labels.
+      - env:
+          TITLE: ${{ github.event.pull_request.title }}
+          BODY: ${{ github.event.pull_request.body }}
+          MAJOR_LABEL: ${{ contains(github.event.pull_request.labels.*.name, 'major') }}
+        run: |
+          if { printf '%s' "$TITLE" | grep -qE '^[a-z]+(\([^)]*\))?!:'; } || { printf '%s' "$BODY" | grep -qE '^BREAKING[ -]CHANGE:'; }; then
+            if [ "$MAJOR_LABEL" != true ]; then
+              echo "::error::This PR would release a new major version. Only the owner decides that: remove the '!' / BREAKING CHANGE, or ask the owner to add the 'major' label."
+              exit 1
+            fi
+            echo "Major release approved by the 'major' label."
+          fi
+
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run format:check
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+
+  unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # Ubuntu 24.04 blocks the unprivileged user namespaces Electron's sandbox needs.
+      - run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+      - run: xvfb-run -a npm run smoke
+
+  # The main ruleset requires a check named "check"; it passes only when every job above passed
+  # (pr-title is skipped on pushes to main, which counts as passed).
+  check:
+    if: always()
+    needs: [pr-title, format, lint, typecheck, unit, e2e]
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "Results: $RESULTS"
+          for r in $RESULTS; do
+            case "$r" in success|skipped) ;; *) echo "::error::A required job did not pass ($r)."; exit 1 ;; esac
+          done

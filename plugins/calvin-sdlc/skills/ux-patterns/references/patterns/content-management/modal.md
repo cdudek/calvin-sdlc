@@ -1,0 +1,636 @@
+# Modal
+
+**Sections (line range):** Overview 17-26 · Use Cases 27-60 (When to use 29-41, When not to use 42-49, Alternatives to Modal 50-60) · Benefits 61-67 · Drawbacks 68-75 · Anatomy 76-143 · Examples 144-204 · Best Practices 205-278 (Content 207-225, Accessibility 226-246, Visual Design 247-263, Layout & Positioning 264-278) · Common Mistakes & Anti-Patterns 279-358 · Tracking 359-428 · Localization 429-466 · Accessibility 467-481 · Testing Guidelines 482-533 · Design Tokens 534-585 · Frequently Asked Questions 586-607 · Related Patterns 608-616 · Resources 617-637
+
+> Display focused content or actions
+
+Build accessible modal dialogs with proper focus management, keyboard interactions, and user experience best practices.
+
+**Category:** Content Management · **Status:** complete · **Popularity:** high · **Complexity:** medium · **Accessibility risk:** high · **Build effort:** medium · **Source:** https://uxpatterns.dev/patterns/content-management/modal
+
+- **Also called:** dialog, dialog box, overlay, popup
+- **Best for:** Critical confirmations and blocking actions; Focused forms or short multi-step tasks; Content that must temporarily take over attention
+- **Avoid when:** The action is lightweight or purely contextual; Users still need the surrounding page while interacting; The content is long enough to deserve its own route
+- **Compare with:** Popover (patterns/content-management/popover.md), Tooltip (patterns/content-management/tooltip.md), Sidebar (patterns/navigation/sidebar.md)
+- **Demo code:** `patterns/content-management/modal.examples.md` (basic, native)
+
+## Overview
+
+A **modal** appears on top of the main application screen, blocking page interaction until closed.
+
+Modals display important information, request user input, or confirm actions in a focused way.
+
+**Build effort:** medium. Requires focus trapping, keyboard accessibility (`Escape` key to close), and handling of background page interactions. Proper ARIA roles are needed to ensure accessibility.
+
+> **Related guide:** Modal vs Popover vs Tooltip?: Compare all overlay patterns to make the right choice (guides/modal-vs-popover-guide.md)
+
+## Use Cases
+
+### When to use:
+
+Use modals to **interrupt user flow** for important information or required user input before proceeding.
+
+**Common scenarios include:**
+
+- **Confirmation dialogs** – "Are you sure you want to delete this item?"
+- **Critical system messages** – session expiration warnings, important alerts
+- **Forms requiring user input** – login, payment, or signup flows
+- **Media previews** – images or videos in lightbox overlays
+- **Multi-step processes** – checkout steps or onboarding flows
+- **Terms and conditions** – requiring user agreement before proceeding
+
+### When not to use:
+
+- Non-essential information doesn't need immediate attention
+- Content or interaction fits inline on the page
+- Same information needs frequent access
+- Large content requires significant scrolling - dedicated pages work better for UX and accessibility
+- Users must interact with the main page while modal is open
+
+### Alternatives to Modal
+
+**Choose the right overlay pattern.** Modal is the strongest interruptive option. Compare it with lighter contextual surfaces before taking over the whole screen.
+
+- **Popover** (patterns/content-management/popover.md): use it when the content belongs to a trigger and should feel contextual rather than interruptive.
+  - Pros: Keeps page context; Lighter interaction cost; Good for quick actions
+  - Cons: Easier to dismiss accidentally; Less space and focus control
+- **Tooltip** (patterns/content-management/tooltip.md): use it when users only need a brief explanation and there is nothing meaningful to click inside.
+  - Pros: Minimal UI cost; Fast to scan; Great for labels and hints
+  - Cons: No real interaction; Weak fit for critical or longer content
+
+## Benefits
+
+- Focuses attention on important information or actions
+- Gathers necessary input without losing page context
+- Simplifies complex workflows into focused steps
+- Blocks main page interaction until task completion
+
+## Drawbacks
+
+- **Disrupts user flow** – forces interaction before continuing with main content
+- **Difficult dismissal** – especially without clear close buttons
+- **Accessibility challenges** – focus trapping and [keyboard navigation](glossary.md#keyboard-navigation) need proper management
+- **Mobile issues** – modals don't fit well on small screens
+- **Overuse frustrates** – particularly for non-essential content
+
+## Anatomy
+
+```mermaid
+graph TD
+    A[Modal] --> B[Overlay]
+    A --> C[Container]
+    C --> D[Header]
+    C --> E[Content]
+    C --> F[Footer]
+    D --> G[Title]
+    D --> H[Close Button]
+    E --> I[Text]
+    E --> J[Forms]
+    E --> K[Images]
+    F --> L[Action Buttons]
+    L --> M[Primary Button]
+    L --> N[Secondary Button]
+```
+
+### Component Structure
+
+1. **Overlay**
+
+- Semi-transparent layer covering main page content
+- Focuses attention on modal content
+- Fades in/out during modal transitions
+
+2. **Container**
+
+- Wraps modal content, buttons, and close control
+- Has visible border or shadow separating it from the page
+- Centers on screen or aligns to another element
+
+3. **Header**
+
+- Contains modal title
+- Includes close button and/or icon
+- Shows modal's purpose, fundamental for accessibility
+
+4. **Content**
+
+- Main modal content area
+- Contains text, images, forms, or interactive elements
+- Stays focused and concise
+
+5. **Footer (Optional)**
+
+- Contains action buttons (e.g., "OK", "Cancel")
+- Provides confirmation and dismissal options
+- Can be omitted for simple, informational modals
+
+6. **Close Button (`button`)**
+
+- Allows users to dismiss the modal without taking an action
+- Often an "X" icon in the corner of the modal
+- Should be included unless the modal requires a specific action to proceed
+
+#### Summary of Components
+
+| Component    | Required? | Purpose                                     |
+| ------------ | --------- | ------------------------------------------- |
+| Overlay      | ✅ Yes    | Blocks background interactions.             |
+| Container    | ✅ Yes    | The main content container of the modal.    |
+| Header       | ✅ Yes    | Provides the modal heading.                 |
+| Content      | ✅ Yes    | Holds the primary information of the modal. |
+| Footer       | ❌ No     | Contains actions (e.g., "Save", "Cancel").  |
+| Close Button | ✅ Yes    | Allows users to dismiss the modal.          |
+
+## Examples
+
+### Method 1: Basic Implementation
+
+> **Live demo:** `basic` in `patterns/content-management/modal.examples.md`
+
+**Pros ✅**
+
+- **Full styling control**—can be completely customized with CSS.
+- **Supports advanced animations and transitions**.
+- **Can include additional behaviors** (e.g., stacking multiple modals, custom scroll locking).
+- **Compatible with all browsers**, including older versions.
+
+**Cons ❌**
+
+- **Requires JavaScript**—needs scripting for open/close behavior.
+- **Manual focus management needed**—must ensure focus stays within the modal.
+- **Must handle accessibility manually**—requires [ARIA attributes](glossary.md#aria-attributes) (`role="dialog"`, `aria-modal="true"`, `aria-labelledby`).
+- **Backdrop needs to be implemented separately**.
+
+### Method 2: Native Modal
+
+> **Live demo:** `native` in `patterns/content-management/modal.examples.md`
+
+**Pros ✅**
+
+- **Built-in modal behavior**—prevents interaction with background content.
+- **Automatic focus management**—traps focus within the modal when open.
+- **Native backdrop support**—automatically applies an overlay.
+- **Keyboard accessible by default**—supports `Escape` key to close.
+- **Simpler implementation**—requires less JavaScript for basic use.
+
+**Cons ❌**
+
+- **Limited styling control**—some browsers restrict modifications to the native backdrop.
+- **Less flexible animations**—difficult to create smooth transitions.
+- **Browser inconsistencies**—not fully supported in older browsers.
+- **Difficult to integrate with custom UI frameworks**.
+
+### When to use a Native Modal (`<dialog>`) and a Custom Modal?
+
+```mermaid
+graph TD
+  A[Do you need full control over styling and behavior?] -->|Yes| B[Use Custom Modal with ARIA]
+  A -->|No| C[Do you want a native solution with minimal code?]
+  C -->|Yes| D[Use Native <dialog> Element]
+  C -->|No| B[Use Custom Modal with ARIA]
+```
+
+For a detailed breakdown of feature differences, refer to the table below:
+
+| Feature                           | `<dialog>` (Native Modal)                    | Custom Modal with ARIA                                   |
+| --------------------------------- | -------------------------------------------- | -------------------------------------------------------- |
+| **Requires JavaScript?**          | ❌ No (for basic behavior)                   | ✅ Yes (to manage accessibility and interactions)        |
+| **Supports full styling?**        | ❌ Limited (some browser restrictions)       | ✅ Yes (complete control over appearance and animations) |
+| **Built-in focus management?**    | ✅ Yes (automatically traps focus)           | ❌ No (must be implemented manually)                     |
+| **Screen reader support?**        | ✅ Yes (automatically announces modal state) | ✅ Yes (if correctly implemented with ARIA roles)        |
+| **Backdrop and overlay support?** | ✅ Yes (native `<dialog>` styling)           | ✅ Yes (requires manual implementation)                  |
+| **Closing behavior?**             | ✅ Supports ESC key, `.close()` method       | ✅ Requires explicit event handling                      |
+| **Best for**                      | Simple, native modals with default behavior  | Fully custom modals with advanced interactions           |
+
+## Best Practices
+
+### Content
+
+**Do's ✅**
+
+- Keep modal content focused and concise
+- Use clear, actionable titles that explain the modal's purpose
+- Provide obvious confirmation and dismissal options
+- Allow users to close the modal by clicking outside the content area
+- Ensure the modal content is accessible and responds properly to [viewport](glossary.md#viewport) changes
+- Ensure the text is straightforward and free of jargon, avoid technical terms
+
+**Don'ts ❌**
+
+- Don't use modals for frequently accessed or non-essential information
+- Avoid long, scrollable content that would be better served by a separate page
+- Don't nest modals, as this can be disorienting for users
+- Don't overuse modals in your application as it can disrupt user flow
+- Avoid ambiguity using vague terms like "Submit" or "Click here"
+
+### Accessibility
+
+**Do's ✅**
+
+- Set `aria-modal="true"` and `role="dialog"` on the modal container
+- Focus to the modal container when opening the modal
+- Trap focus within the modal container so that tabbing doesn't escape back to the page
+- Properly label action buttons and close controls
+- Manage keyboard focus and provide intuitive keyboard navigation
+- Use an `h2` heading for the modal title
+- Ensure the modal can be closed with the Escape key
+- Restore focus to the triggering element when the modal is closed
+- Use either `aria-labelledby` property to point to the modal title or `aria-label` to provide a label for the modal
+
+**Don'ts ❌**
+
+- Don't make it difficult to find the close button
+- Avoid auto-focusing elements like text inputs unless absolutely necessary
+- Don't block screen readers from accessing the modal content
+- Don't forget to freeze scrolling on the main content while the modal is open
+
+### Visual Design
+
+**Do's ✅**
+
+- Use consistent design patterns for modals throughout your website or web application
+- Ensure the modal content contrasts well with the overlay background
+- Provide sufficient whitespace and padding within the modal container
+- Use a responsive design that adapts well to different screen sizes
+- Consider using subtle transitions or animations to help guide user focus
+- Provide visual feedback on buttons when an action is processed (e.g. [loading indicator](patterns/user-feedback/loading-indicator.md))
+
+**Don'ts ❌**
+
+- Don't make the modal so large that it overwhelms the main page content
+- Avoid visually jarring or distracting styles that detract from the content
+- Don't use low-contrast text or elements that blend into the overlay background
+
+### Layout & Positioning
+
+**Do's ✅**
+
+- Center modals vertically and horizontally for a balanced layout
+- Align modal content to the left for better readability
+- Ensure modals have a minimum margin from screen edges on smaller [viewports](glossary.md#viewport)
+- Consider placing action buttons in the footer for clear separation
+
+**Don'ts ❌**
+
+- Don't position modals in hard-to-reach areas like the extreme top or bottom of the page
+- Avoid modal heights that extend beyond the [viewport](glossary.md#viewport) if possible
+- Don't make modals so narrow that the content becomes unnecessarily constrained
+
+## Common Mistakes & Anti-Patterns 🚫
+
+### Forcing Users Into a Modal (No Close Option)
+
+**The Problem:**
+Users feel trapped if they can't exit a modal.
+
+**How to Fix It?**
+Always provide a clear **close button (X)** and support the `Esc` key for dismissal.
+
+---
+
+### Triggering Modals on Page Load
+
+**The Problem:**
+Unrequested modals on page load can feel like pop-ups that disrupt user flow.
+
+**How to Fix It?**
+Only show modals when the user **intentionally** initiates them.
+
+---
+
+### Disrupting Background Page Focus
+
+**The Problem:**
+Some modals allow interaction with background content while open, causing layered focus.
+
+**How to Fix It?**
+Add a **focus trap** inside the modal and prevent background interaction until it's closed.
+
+---
+
+### Modal Closes on Accidental Click
+
+**The Problem:**
+Clicking outside the modal might unintentionally dismiss it, frustrating or confusing users.
+
+**How to Fix It?**
+Only allow closing on background click if it's non-critical info. For important data, require an explicit close action.
+
+---
+
+### Missing or Incorrect ARIA Markup (Accessibility)
+
+**The Problem:**
+If the modal isn't announced as a dialog (e.g., missing `role="dialog"`), screen readers might not indicate it properly.
+
+**How to Fix It?**
+Use `role="dialog"` or the `<dialog>` element with `aria-modal="true"`. Provide a clear heading or label.
+
+---
+
+### Failing to Return Focus to the Trigger (Accessibility)
+
+**The Problem:**
+When the modal closes, focus can get lost (e.g., jump to the top of the page).
+
+**How to Fix It?**
+Store the element that triggered the modal and **return focus** to it after closing.
+
+---
+
+### No Visible Focus States (Accessibility)
+
+**The Problem:**
+Keyboard users can't see where they are if no focus outline is visible on buttons or form fields.
+
+**How to Fix It?**
+Ensure a **clear, high-contrast focus indicator** is present. Validate you can "Tab" through all interactive elements.
+
+---
+
+### Overly Complex or Overstuffed Modals (Accessibility)
+
+**The Problem:**
+If a modal presents too much content (long forms, lots of text), users relying on screen readers may be overwhelmed.
+
+**How to Fix It?**
+Keep modals **brief and to the point**. For more complex workflows, use a dedicated page or a multi-step wizard.
+
+## Tracking
+
+Tracking modal interactions helps measure engagement, detect usability issues, and optimize how modals contribute to user workflows. By capturing key actions, we can determine whether modals improve the user experience or create friction.
+
+### Key Tracking Points
+
+Each modal interaction provides valuable insights into user behavior. Below are the key events that should be tracked:
+
+| **Event Name**                 | **Description**                                                                          | **Why Track It?**                                                      |
+| ------------------------------ | ---------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| `modal.view`                   | When the modal first appears on the screen.                                              | Helps measure how often users encounter the modal.                     |
+| `modal.open`                   | When a user manually opens the modal (e.g., by clicking a button).                       | Measures user-initiated engagement.                                    |
+| `modal.auto_open`              | When the modal opens automatically (e.g., a pop-up triggered by page behavior).          | Helps track modal effectiveness vs. annoyance.                         |
+| `modal.close`                  | When a user closes the modal (by clicking an "X", pressing Escape, or clicking outside). | Identifies how users dismiss the modal.                                |
+| `modal.dismiss_without_action` | When a user closes the modal without interacting with any content inside it.             | Indicates if the modal is irrelevant or intrusive.                     |
+| `modal.primary_action`         | When a user clicks the **primary CTA** (e.g., "Submit", "Confirm", "Continue").          | Tracks conversion and engagement with modal content.                   |
+| `modal.secondary_action`       | When a user clicks a **secondary action** (e.g., "Cancel", "Learn More", "Skip").        | Measures alternative user behaviors.                                   |
+| `modal.interaction_time`       | The time a user spends interacting with the modal before closing.                        | Helps determine if users are engaging with the content or ignoring it. |
+
+### Event Payload Structure
+
+To ensure consistent tracking, here's a recommended event format:
+
+```json
+{
+  "event": "modal.primary_action",
+  "properties": {
+    "modal_id": "newsletter_signup",
+    "action_label": "Subscribe",
+    "interaction_time": 5.2 // in seconds
+  }
+}
+```
+
+### Key Metrics to Analyze
+
+Once tracking is in place, the following metrics provide actionable insights:
+
+- Open Rate → Percentage of users who see the modal (manual vs. auto-open).
+- Engagement Rate → Percentage of users who interact with the modal before closing.
+- Dismissal Rate → Percentage of users who close the modal without taking any action.
+- Completion Rate → Percentage of users who complete the modal's primary action.
+- Time in Modal → Average time users spend inside the modal.
+
+### Insights & Optimization Based on Tracking
+
+By analyzing tracking data, we can optimize the modal experience:
+
+- 🚨 **High Dismissal Rate?**
+  → Users may find the modal intrusive or irrelevant.
+  **Optimization:** Adjust the timing, trigger conditions, or placement to make it feel more contextual.
+
+- ⏳ **Low Interaction Time?**
+  → Users may not be reading the content or may be overwhelmed.
+  **Optimization:** Simplify the message, use bullet points, or reduce the amount of required input.
+
+- 📉 **Low Completion Rate?**
+  → The primary action may not be compelling enough.
+  **Optimization:** Improve CTA wording, adjust positioning, or offer better incentives.
+
+- ⚡ **High "Escape Key" or Click Outside Dismissals?**
+  → Users may instinctively close the modal without engaging.
+  **Optimization:** Ensure the modal provides clear value upfront and isn't disrupting the user's flow.
+
+- 🔄 **High Auto-Open Close Rate?**
+  → If most users dismiss auto-open modals immediately, they may be perceived as annoying.
+  **Optimization:** Make them **manual-triggered only**, delay their appearance, or ensure they are only shown when truly relevant.
+
+By continuously monitoring these metrics, we can refine the modal's effectiveness and ensure it enhances, rather than disrupts, the user experience.
+
+## Localization
+
+Modals require careful localization of both visible text and accessibility labels. This includes button labels for actions like close, confirm, and cancel, as well as their corresponding ARIA labels for screen readers.
+
+The following JSON structure provides the essential strings that should be translated to ensure your modal is fully accessible across different languages and cultures.
+
+```json
+{
+  "modal": {
+    "close": {
+      "label": "Close",
+      "aria_label": "Close this modal window"
+    },
+    "confirm": {
+      "label": "Confirm",
+      "aria_label": "Confirm your action"
+    },
+    "cancel": {
+      "label": "Cancel",
+      "aria_label": "Cancel and close the modal"
+    },
+    "title": "Title of the modal",
+    "content": "",
+    "status": {
+      "loading": "Loading...",
+      "saving": "Saving...",
+      "success": "Changes saved successfully",
+      "error": "An error occurred. Please try again."
+    },
+    "aria_modal": {
+      "aria_labelledby": "modal_title",
+      "aria_describedby": "modal_description",
+      "loading_state": "Please wait while content is loading"
+    }
+  }
+}
+```
+
+## Accessibility
+
+### Keyboard Interaction Pattern
+
+The following table outlines the standard keyboard interactions for modal components. These interactions ensure that users can navigate and operate modals effectively using only a keyboard.
+
+| Key         | Action                                                                                               |
+| ----------- | ---------------------------------------------------------------------------------------------------- |
+| Escape      | Closes the modal                                                                                     |
+| Tab         | Moves focus to the next focusable element within the modal. Focus should be trapped within the modal |
+| Shift + Tab | Moves focus to the previous focusable element within the modal                                       |
+| Enter/Space | Activates the focused button or control                                                              |
+
+> **Note**: When the modal opens, focus should automatically move to the first focusable element within the modal (usually the close button or the first form field). When the modal closes, focus should return to the element that triggered the modal.
+
+## Testing Guidelines
+
+### Functional Testing
+
+**Should ✓**
+
+- [ ] Ensure the modal **opens and closes correctly** when triggered.
+- [ ] Verify that **clicking the close button** dismisses the modal.
+- [ ] Check that clicking **outside the modal (on the overlay)** closes it, if applicable.
+- [ ] Ensure the modal **does not close** when interacting with form fields or selecting text inside.
+- [ ] Test modal behavior **when resizing the [viewport](glossary.md#viewport)**—it should remain correctly positioned.
+- [ ] Validate that **nested modals** (if supported) do not break functionality.
+
+### Accessibility Testing
+
+**Should ✓**
+
+- [ ] Ensure the modal has **`role="dialog"`** and **`aria-modal="true"`**.
+- [ ] Verify that the modal title is **announced by screen readers** using `aria-labelledby` or `aria-label`.
+- [ ] Ensure **keyboard navigation is functional**—users can tab through elements inside the modal.
+- [ ] Test that focus is **trapped inside the modal** while it is open.
+- [ ] Ensure that pressing the **Escape key closes the modal**.
+- [ ] Confirm that **focus returns to the triggering element** when the modal closes.
+- [ ] Verify that **modals do not interfere with [screen reader](glossary.md#screen-reader) navigation**.
+
+### Icon & Close Button Testing
+
+**Should ✓**
+
+- [ ] Ensure the **close button is visible and accessible**.
+- [ ] Verify that the **icon changes state** if an interactive toggle icon is used.
+- [ ] Confirm that **keyboard users can activate the close button**.
+
+### Visual Testing
+
+**Should ✓**
+
+- [ ] Validate that the **modal is positioned correctly** (centered or anchored as intended).
+- [ ] Ensure the modal has **sufficient contrast** against the overlay.
+- [ ] Check that **action buttons are clearly visible and styled appropriately**.
+- [ ] Verify that modal **animations/transitions** (if any) are smooth and non-jarring.
+- [ ] Test modal layout across **various screen sizes** to ensure responsiveness.
+
+### Performance Testing
+
+**Should ✓**
+
+- [ ] Verify that modal animations **do not cause lag**.
+- [ ] Ensure modals **load efficiently** and do not block page rendering.
+- [ ] Test modal performance when **multiple modals are triggered in succession**.
+- [ ] Confirm that **closing the modal correctly removes it from the [DOM](glossary.md#dom)** (if dynamically inserted).
+
+## [Design Tokens](glossary.md#design-tokens)
+
+These [design tokens](glossary.md#design-tokens) follow the [Design Tokens Format](https://design-tokens.github.io/community-group/format/) specification and can be used with various token transformation tools to generate platform-specific variables.
+
+### Modal Tokens in DTF Format
+
+```json
+{
+  "$schema": "https://design-tokens.org/schema.json",
+  "modal": {
+    "animation": {
+      "duration": { "value": "300ms", "type": "duration" },
+      "easing": { "value": "ease-out", "type": "cubicBezier" }
+    },
+    "overlay": {
+      "background": { "value": "rgba(0, 0, 0, 0.8)", "type": "color" }
+    },
+    "container": {
+      "padding": { "value": "2rem", "type": "dimension" },
+      "background": { "value": "{color.white}", "type": "color" },
+      "border": {
+        "radius": { "value": "0.5rem", "type": "dimension" },
+        "shadow": {
+          "value": "0px 4px 16px rgba(0, 0, 0, 0.2)",
+          "type": "boxShadow"
+        }
+      },
+      "width": {
+        "mobile": { "value": "90%", "type": "dimension" },
+        "desktop": { "value": "600px", "type": "dimension" }
+      }
+    },
+    "heading": {
+      "margin": { "value": "0 0 1rem", "type": "dimension" },
+      "fontWeight": { "value": "600", "type": "fontWeight" }
+    },
+    "actions": {
+      "gap": { "value": "1rem", "type": "dimension" },
+      "marginTop": { "value": "2rem", "type": "dimension" }
+    },
+    "close": {
+      "size": { "value": "2rem", "type": "dimension" },
+      "background": { "value": "transparent", "type": "color" },
+      "border": { "value": "none", "type": "borderStyle" },
+      "icon": { "value": "{icon.close}", "type": "icon" },
+      "top": { "value": "1.5rem", "type": "dimension" },
+      "right": { "value": "1.5rem", "type": "dimension" }
+    }
+  }
+}
+```
+
+## Frequently Asked Questions
+
+**Q: What is a modal dialog in web design?**
+
+A modal dialog is a user interface element that appears on top of the main content, requiring users to interact with it before returning to the underlying page. It is commonly used to capture user input, display critical information, or prompt for decisions.
+
+**Q: When should I use a modal dialog?**
+
+Modal dialogs are appropriate when you need to direct the user's attention to important information or require an immediate response. Common scenarios include confirming actions, displaying forms, or presenting critical alerts.
+
+**Q: How can I make a modal dialog accessible?**
+
+To ensure accessibility, use [semantic HTML](glossary.md#semantic-html) elements like `<dialog>` or `<div>` with appropriate ARIA roles. Manage focus by moving it to the modal when it opens and returning it to the triggering element upon closure. Provide keyboard support for navigation and actions within the modal.
+
+**Q: What are the benefits of using modal dialogs?**
+
+Modal dialogs effectively capture user attention, facilitate focused interactions, and can streamline workflows by prompting users to complete specific tasks without navigating away from the current page.
+
+**Q: What are common mistakes to avoid when implementing modal dialogs?**
+
+Avoid overusing modal dialogs, as they can become intrusive. Ensure they are not used for non-critical information. Always implement proper focus management and keyboard accessibility to prevent trapping users within the modal.
+
+## Related Patterns
+
+- patterns/content-management/accordion.md
+- patterns/content-management/carousel.md
+- patterns/content-management/drag-and-drop.md
+- patterns/content-management/expandable-text.md
+- patterns/content-management/popover.md
+- patterns/content-management/tooltip.md
+
+## Resources
+
+### References
+
+- [WCAG 2.2](https://www.w3.org/TR/WCAG22/) - Accessibility baseline for keyboard support, focus management, and readable state changes.
+- [WAI-ARIA Authoring Practices](https://www.w3.org/WAI/ARIA/apg/) - Reference patterns for keyboard behavior, semantics, and assistive technology support.
+
+### Guides
+
+- [MDN WAI-ARIA basics](https://developer.mozilla.org/en-US/docs/Learn_web_development/Core/Accessibility/WAI-ARIA_basics) - Guidance on when to rely on native HTML and when to introduce ARIA roles and states.
+
+### Articles
+
+- [Nielsen Norman Group: Accordions on desktop](https://www.nngroup.com/articles/accordions-on-desktop/) - When collapsible content helps scanning and when it hides too much context.
+
+### NPM Packages
+
+- [`@radix-ui/react-dialog`](https://www.npmjs.com/package/%40radix-ui%2Freact-dialog) - Dialog primitive for modals, sheet-style overlays, and focus management.
+- [`@floating-ui/react`](https://www.npmjs.com/package/%40floating-ui%2Freact) - Positioning engine for tooltips, popovers, dropdowns, and anchored surfaces.
+- [`focus-trap`](https://www.npmjs.com/package/focus-trap) - Keeps keyboard focus inside active modal and popover surfaces.

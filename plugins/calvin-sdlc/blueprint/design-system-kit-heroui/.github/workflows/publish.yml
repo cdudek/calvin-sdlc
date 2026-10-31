@@ -1,0 +1,85 @@
+name: Publish
+
+# Snapshot prereleases to GitHub Packages, so parallel milestones never wait for a bump PR
+# (docs/designs/2026-10-28-adr-kit-contracts-v1-frozen.md). Never commits back. Only main publishes to
+# the `next` dist-tag; every other branch gets a tag of its own slug, so snapshots never overwrite each
+# other. Nothing publishes before `verify` (the same checks as CI) has passed.
+
+on:
+  push:
+    branches: [main, 'milestone/**']
+  workflow_dispatch:
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          registry-url: https://npm.pkg.github.com
+          scope: '@pokbytes'
+          cache: npm
+      - run: npm ci --ignore-scripts
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # fabric's render tests need node-canvas; only its install script runs
+      - run: npm rebuild canvas
+      - run: npm run format:check
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+
+  publish:
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          # changesets reads the history of each changeset; a shallow clone makes it try to fetch with no credentials
+          fetch-depth: 0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          registry-url: https://npm.pkg.github.com
+          scope: '@pokbytes'
+          cache: npm
+      - run: npm ci --ignore-scripts
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # fabric's render tests need node-canvas; only its install script runs
+      - run: npm rebuild canvas
+      # The branch name goes through env and a shell variable, never into the script text.
+      - name: Slug and dist-tag of this branch
+        id: branch
+        env:
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          slug=$(printf '%s' "$BRANCH" | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9\n' '-' | sed 's/^-*//;s/-*$//')
+          echo "slug=$slug" >> "$GITHUB_OUTPUT"
+          if [ "$BRANCH" = main ]; then echo "tag=next" >> "$GITHUB_OUTPUT"; else echo "tag=$slug" >> "$GITHUB_OUTPUT"; fi
+      - name: Version as a snapshot of this branch
+        env:
+          SLUG: ${{ steps.branch.outputs.slug }}
+        run: npx changeset version --snapshot "$SLUG"
+      - name: Publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.branch.outputs.tag }}
+        run: npx changeset publish --tag "$TAG" --no-git-tag

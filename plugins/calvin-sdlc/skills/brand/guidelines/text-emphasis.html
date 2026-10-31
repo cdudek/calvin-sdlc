@@ -1,0 +1,342 @@
+<!-- @dsCard group="Type" viewport="920x5700" name="Text emphasis" subtitle="The 3 emphasis types — Highlight bar · Outline · Bold — with fixed placement rules (ad / social / non-website assets)" -->
+<!DOCTYPE html>
+<html lang="de" data-theme="light"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body{
+    margin:0; padding:32px; background:var(--background-color-surface);
+    color:var(--text-color-main); font-family:var(--font-sans);
+  }
+  .wrap{ max-width:856px; margin:0 auto; display:flex; flex-direction:column; gap:14px; }
+  .lead{ color:var(--text-color-subtle); max-width:70ch; margin:0 0 8px; }
+  .rule-banner{
+    border:1px solid var(--border-color-main); border-radius:var(--radius-lg);
+    padding:12px 16px; background:var(--background-color-surface-elevation-1);
+    font-family:var(--font-mono); font-size:12px; color:var(--text-color-subtle);
+  }
+  .rule-banner b{ color:var(--text-color-main); }
+
+  .card{
+    border:1px solid var(--border-color-subtle); border-radius:var(--radius-2xl);
+    overflow:hidden;
+  }
+  .card > .head{
+    display:flex; align-items:baseline; gap:12px; flex-wrap:wrap;
+    padding:18px 22px 14px; border-bottom:1px solid var(--border-color-subtle);
+  }
+  .badge{
+    font-family:var(--font-mono); font-size:11px; letter-spacing:.04em;
+    padding:3px 8px; border-radius:var(--radius-sm);
+    background:var(--background-color-surface-elevation-2); color:var(--text-color-subtle);
+  }
+  .head h3{ margin:0; }
+  .head .where{ margin-left:auto; font-family:var(--font-mono); font-size:11px; color:var(--text-color-subtlest); }
+  .stage{ padding:26px 22px; }
+  .stage.dark{ background:#8259ff; }
+  .stage.light-el{ background:var(--background-color-surface-elevation-1); }
+  .notes{ padding:0 22px 20px; }
+  .notes ul{ margin:0; padding-left:18px; color:var(--text-color-subtle); font-size:13px; line-height:1.6; }
+  .notes ul b{ color:var(--text-color-main); font-weight:700; }
+
+  /* ============================================================
+     KIND 1 — HIGHLIGHT BAR (headlines only)
+     This card defines NO values of its own. Geometry and dimensions
+     come exclusively from tokens/highlight.css (.omr-highlight,
+     .omr-highlight--diacritic, .omr-highlight-headline).
+     Only the demo's colour variants live here.
+     ============================================================ */
+  /* Farbwelt 2, literale Hex-Werte aus CLAUDE.md §4 */
+  .hl-black{ background:#000000; color:#ffffff; }
+  .hl-white{ background:#ffffff; color:#000000; }
+  .hl-purple{ background:#8259ff; color:#ffffff; }  /* Purple Strong */
+  .hl-mint{ background:#00adad; color:#ffffff; }    /* Mint Strong */
+  .hl-yellow{ background:#f2b200; color:#000000; }  /* Yellow Strong */
+
+  .headline{
+    font-family:var(--font-sans); font-weight:800;
+    line-height:var(--highlight-headline-line-height);
+    letter-spacing:0; margin:0; color:var(--text-color-main);
+  }
+  /* Balken & Kontur nur im Versalsatz → Demo-Headlines durchgängig uppercase */
+  .headline.versal{ text-transform:uppercase; }
+  .measure .specimen .omr-highlight{ text-transform:uppercase; }
+  .headline.on-dark{ color:#fff; }
+
+  /* Measurement demo */
+  .measure{ display:flex; gap:36px; align-items:center; flex-wrap:wrap; }
+  .measure .specimen{ position:relative; }
+  .measure .specimen .omr-highlight{ font-size:63px; }
+  .gap-note{ font-family:var(--font-mono); font-size:12px; color:var(--text-color-subtle); line-height:1.7; }
+  .gap-note b{ color:var(--text-color-main); }
+  .gap-note .v{ color:#000000; font-weight:700; }
+
+  /* ART 2 — OUTLINE */
+  .outline{
+    color:transparent; -webkit-text-fill-color:transparent;
+    -webkit-text-stroke:0.025em #000000;      /* fill removed AND stroke added — both · em so it scales with the headline */
+    font-weight:800;
+  }
+  .outline.on-dark{ -webkit-text-stroke-color:#ffffff; }
+  .wrong-outline{
+    color:transparent; -webkit-text-fill-color:transparent;
+    -webkit-text-stroke:0;                     /* fill gone, NO stroke → invisible = wrong */
+    font-weight:800;
+  }
+  .anti{ display:flex; gap:28px; flex-wrap:wrap; align-items:flex-start; }
+  .anti .col{ flex:1 1 260px; }
+  .tag-ok, .tag-bad{ font-family:var(--font-mono); font-size:11px; font-weight:700; letter-spacing:.04em; }
+  .tag-ok{ color:var(--text-color-success); }
+  .tag-bad{ color:var(--text-color-error); }
+  .frame{
+    margin-top:8px; border:1px dashed var(--border-color-main); border-radius:var(--radius-lg);
+    padding:20px; display:flex; align-items:center; justify-content:center; min-height:96px;
+    background:var(--background-color-surface-elevation-1);
+  }
+
+  /* ART 3 — BODY BOLD */
+  .body-demo{ max-width:60ch; }
+  .body-demo p{ margin:0; color:var(--text-color-main); line-height:1.55; }
+  .body-demo b{ font-weight:700; }   /* OMR One Bold — body only */
+</style></head>
+<body>
+<div class="wrap">
+
+  <div>
+    <h1 class="txt-headline-2xl-bold" style="margin:0 0 6px;">Text emphasis</h1>
+    <p class="lead txt-body-m-regular">For ad and social-media visuals and all non-website assets. There are <b>exactly three</b> kinds of emphasis, each with a <b>fixed place of use</b>. Add nothing, mix nothing.</p>
+  </div>
+
+  <div class="rule-banner">
+    HEADLINE → highlight bar <b>or</b> outline type&nbsp; ·&nbsp; BODY COPY → bold&nbsp; ·&nbsp; bar &amp; outline <b>only in capitals</b> (no mixed case)&nbsp; ·&nbsp; never bar/outline in body copy, never bold in headlines
+  </div>
+
+  <!-- ============ ART 1 ============ -->
+  <div class="card">
+    <div class="head">
+      <span class="badge">KIND 1</span>
+      <h3 class="txt-headline-l-bold">Highlight bar</h3>
+      <span class="where">only in headlines</span>
+    </div>
+    <div class="stage light-el">
+      <p class="headline omr-highlight-headline versal" style="font-size:40px;">Das <span class="omr-highlight hl-purple">wichtigste</span> Wort<br>steht im <span class="omr-highlight hl-purple">Balken</span></p>
+    </div>
+    <div class="stage" style="padding-top:6px;">
+      <div class="measure">
+        <div class="specimen">
+          <span class="omr-highlight hl-purple">Balken</span>
+        </div>
+        <div class="gap-note">
+          All values from <b>tokens/highlight.css</b> · leading source <b>OMR_Highlightbalken.fig</b><br>
+          Reference measurement: fontSize 63 px, OMR One Extrabold, capitals, letter-spacing 0<br><br>
+          <b>Line height headline</b> &nbsp;=&nbsp; <span class="v">1.353em</span> (font-intrinsic, "Auto")&nbsp; =&nbsp; 85 px<br>
+          <b>Padding top / bottom</b> &nbsp;=&nbsp; <span class="v">0.2025em</span> &nbsp;=&nbsp; 12.75 px<br>
+          Cap top → bar top and baseline → bar bottom, exactly equal<br>
+          <b>Padding left / right</b> &nbsp;=&nbsp; <span class="v">0.159em</span> &nbsp;=&nbsp; 10 px<br>
+          <b>Extra top padding with ÄÖÜ</b> &nbsp;=&nbsp; <span class="v">0.127em</span> &nbsp;=&nbsp; 8 px<br>
+          <b>Distance bar to neighbouring word</b> =&nbsp; reference <span class="v">0.30em</span> (19 px @63)<br>
+          rendered from the space: <span class="v">0.19em</span> — open point, see rules<br>
+          <b>Spacing between lines</b> &nbsp;=&nbsp; <span class="v">0</span><br><br>
+          Bar height without diacritics&nbsp; =&nbsp; cap block 0.745em + 2 × 0.2025em&nbsp; = <span class="v">1.15em</span> &nbsp;=&nbsp; 72.44 px<br>
+          Bar height with diacritics&nbsp; = <span class="v">1.277em</span> &nbsp;=&nbsp; 80 px<br>
+          Gap between two bars&nbsp; = <span class="v">0.203em</span> — falls out, is not set<br>
+          also applies between the two bars of a wrapping statement<br><br>
+          Font metrics OMR One @ wght 800, measured on OMROneVF:<br>
+          Cap height <b>0.745em</b> · top of ÄÖÜ <b>0.996em</b> ·
+          typoAscender <b>1.038em</b> · typoDescender <b>0.315em</b> ·
+          lineGap <b>0</b> · content box <b>1.353em</b> · stem <b>0.171em</b><br>
+          <span style="color:var(--text-color-subtlest)">→ all values are multiples of the font size and scale with it.<br>No fixed pixel values, no clearance value, no slack calculation,<br>no negative margins, no offset, no second compensation.</span>
+        </div>
+      </div>
+    </div>
+    <div class="notes">
+      <ul>
+        <li><b>Only in capitals</b> (continuous capitals), never in mixed case.</li>
+        <li><b>Headlines are always left-aligned with a ragged right edge.</b> Never right-aligned, never centred, never justified, not even for headlines with a bar (CLAUDE.md §11).</li>
+        <li><b>Principle:</b> the bar height is <b>not derived from the line height</b>. It is the cap block plus a set inner padding, equal above and below: <b>0.745 + 2 × 0.2025 = 1.15em</b>. <code>text-box: trim-both cap alphabetic</code> trims the box to cap height and baseline, after which the padding is exactly the measured distance.</li>
+        <li><b>Exactly one vertical rule.</b> No clearance value, no slack deduction, no offset, no line-spacing allowance, no second compensation. Earlier vertical corrections are removed, not adjusted.</li>
+        <li>All dimensions come from <b>tokens/highlight.css</b>, the leading source is <b>OMR_Highlightbalken.fig</b>. Cards and assets define no values of their own.</li>
+        <li><b>The vertical inner padding is a target value, not a result:</b> <b>0.2025em</b> from the cap top to the bar top and <b>0.2025em</b> from the baseline to the bar bottom. Both values are exactly equal. At the sides there are <b>0.159em</b> padding plus roughly 0.05em glyph side bearing, so roughly <b>0.21em</b> — the inner padding is thus consistent on all sides. <b>Do not readjust.</b></li>
+        <li><b>Centred on the cap block:</b> the same distance above and below. The line box centres on ascender plus descender and would thus sit structurally 0.022em too low; that is why the height is set on the cap block, not on the line height.</li>
+        <li><b>Line spacing: none.</b> The lines abut with spacing 0. Because the bar box is 1.15em low and the line box 1.353em high, between two bars on neighbouring lines there automatically remain <b>0.203em</b>. This value is not set, it falls out.</li>
+        <li><b>Diacritics:</b> if the bar text contains a character above cap height (Ä Ö Ü, accents), the bar gets <b>0.127em extra padding at the top</b> — bar height <b>1.277em</b>. The 0.2025em at the bottom and everything at the sides stay unchanged. The dots reach up to 0.996em and thus sit 0.0755em below the bar top. The larger bar height stays below the line height of 1.353em; even with umlauts the line spacing is <b>not</b> increased.</li>
+        <li><b>Word spacing:</b> The reference value of the .fig is <b>0.30em</b> between the bar edge and the neighbouring word, in addition to the inner padding. For that the bar carries <b>no outer margin</b>: any inline margin on the bar also acts at the start of the line and breaks the left text edge there. Rendered, the space in the markup delivers <b>0.19em</b>. The difference is open and is not closed by a compensation on the bar.</li>
+        <li><b>Scaling:</b> all values are multiples of the font size and scale with it. No fixed pixel values. The earlier minimum distance of 5 px is gone.</li>
+        <li>The stroke weight is the measured stem width of the font file in the respective cut; for the bar <b>OMR One Extrabold (800) = 0.171em</b>. The earlier value 0.11em is wrong and deleted.</li>
+        <li><b>Setting:</b> the bar sits on the most important word or on the main statement of the headline. One bar per word or per coherent core statement.</li>
+        <li><b>Wrapping the bar statement is permitted.</b> If it wraps, <b>two independent bars</b>result, one per line; no continuous bar, no shared box across two lines. Each carries the full geometry (0.2025em above and below, 0.159em at the sides, anchored to the cap block), the diacritics allowance only where diacritics occur. A bar with an umlaut is thus taller than its partner. That is intended.</li>
+        <li>Between the two bars the same distance applies as between two bars on neighbouring lines: it falls out as <b>0.203em</b> from line height minus bar height and is not set. The bars never touch.</li>
+        <li>The break happens at a <b>word boundary</b>. A word is never split, neither with nor without a hyphen. Both bars start on the <b>left text edge</b>, unless text precedes them; no indent, no offset. <b>At most two lines</b> per bar statement; if three would be needed, shorten to the core word.</li>
+        <li><b>To wrap or not</b> , checked in this order: if the whole statement fits into the current line, it stays there. If it does not fit, the break is set <b>inside</b> the statement as soon as pulling it closed would leave a visible gap at the end of the previous line. If the previous line stays filled even without the bar, the statement moves to the next line as a whole. A gap at the line end that is clearly wider than one word of the headline is not acceptable.</li>
+        <li>One bar colour per visual, <b>also with two bars from one statement</b>.</li>
+        <li>Bars on several lines are permitted and never touch under this geometry.</li>
+        <li>Bar as <b><code>display:inline-block</code></b> with <code>line-height:1</code>, <code>text-box:trim-both cap alphabetic</code> and <code>white-space:nowrap</code>.</li>
+        <li>Rectangle, <b>square corners</b> — no rounding, no shadow, no gradient.</li>
+        <li><b>One single bar colour per visual.</b> The colour follows the background per CLAUDE.md §7.5: on black <span class="hex">#8259ff</span> or <span class="hex">#ffffff</span>, on purple, white and all light tones <span class="hex">#000000</span>. Coloured bars belong on black or white. On title slides and chapter dividers §6 applies.</li>
+        <li>Only for <b>single important words</b> in a headline, never in body copy, never across the board.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- bar colour rule: CLAUDE.md §7.5 -->
+  <div class="card">
+    <div class="head">
+      <span class="badge">KIND 1 · COLOUR</span>
+      <h3 class="txt-headline-m-bold">Bar colour outside title slides · CLAUDE.md §7.5</h3>
+    </div>
+
+    <span class="txt-label-s-bold-uppercase" style="display:block; color:var(--text-color-subtle); margin:2px 0 10px;">On black — bar #8259ff or #ffffff</span>
+    <div class="stage" style="display:flex; gap:20px; flex-wrap:wrap;">
+      <div style="background:#000000; padding:14px 18px; border-radius:var(--radius-lg);">
+        <p class="headline omr-highlight-headline on-dark versal" style="font-size:30px; margin:0;">Purple <span class="omr-highlight hl-purple">Balken</span></p>
+      </div>
+      <div style="background:#000000; padding:14px 18px; border-radius:var(--radius-lg);">
+        <p class="headline omr-highlight-headline on-dark versal" style="font-size:30px; margin:0;">White <span class="omr-highlight hl-white">Balken</span></p>
+      </div>
+    </div>
+
+    <span class="txt-label-s-bold-uppercase" style="display:block; color:var(--text-color-subtle); margin:20px 0 10px;">On purple, on white and on light tones — bar #000000</span>
+    <div class="stage" style="display:flex; gap:20px; flex-wrap:wrap;">
+      <div style="background:#8259ff; padding:14px 18px; border-radius:var(--radius-lg);">
+        <p class="headline omr-highlight-headline on-dark versal" style="font-size:26px; margin:0;">On <span class="omr-highlight hl-black">Purple</span></p>
+      </div>
+      <p class="headline omr-highlight-headline versal" style="font-size:26px;">On <span class="omr-highlight hl-black">White</span></p>
+      <div style="background:#ada6fc; padding:14px 18px; border-radius:var(--radius-lg);">
+        <p class="headline omr-highlight-headline versal" style="font-size:26px; margin:0;">Purple Light → <span class="omr-highlight hl-purple">Strong</span></p>
+      </div>
+      <div style="background:#80e0db; padding:14px 18px; border-radius:var(--radius-lg);">
+        <p class="headline omr-highlight-headline versal" style="font-size:26px; margin:0;">Mint Light → <span class="omr-highlight hl-mint">Strong</span></p>
+      </div>
+      <div style="background:#ffdb75; padding:14px 18px; border-radius:var(--radius-lg);">
+        <p class="headline omr-highlight-headline versal" style="font-size:26px; margin:0;">Yellow Light → <span class="omr-highlight hl-yellow">Strong</span></p>
+      </div>
+    </div>
+
+    <div class="notes">
+      <ul>
+        <li>On <b>title slides and chapter dividers</b> CLAUDE.md §6 applies (variant A or B), not this table.</li>
+        <li>Background <span class="hex">#000000</span> → bar <span class="hex">#8259ff</span> or <span class="hex">#ffffff</span>, bar text <span class="hex">#ffffff</span> or <span class="hex">#000000</span>.</li>
+        <li>Background <span class="hex">#8259ff</span> → bar <span class="hex">#000000</span>, bar text <span class="hex">#ffffff</span>.</li>
+        <li>Background <span class="hex">#ffffff</span> → bar <span class="hex">#000000</span>, bar text <span class="hex">#ffffff</span>.</li>
+        <li><b>Light tones</b> → bar <span class="hex">#000000</span>, bar text <span class="hex">#ffffff</span>.</li>
+        <li>On coloured backgrounds the <b>black bar is the most reliable choice</b>. <b>Coloured bars belong on black or white.</b></li>
+        <li><b>Only one bar colour per visual</b> — all bars of a visual have exactly the same colour.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- multi-line gap · Regressionsfall -->
+  <div class="card">
+    <div class="head">
+      <span class="badge">KIND 1 · LINES</span>
+      <h3 class="txt-headline-m-bold">Regression case — three-line headline, umlaut bar, scaling</h3>
+      <span class="where">Mandatory check · light &amp; dark</span>
+    </div>
+    <div class="stage light-el">
+      <p class="headline omr-highlight-headline versal" style="font-size:34px;"><span class="omr-highlight hl-black">Reichweite</span> ist kein Zufall,<br>sondern das Ergebnis von Arbeit,<br>Haltung und klarer <span class="omr-highlight omr-highlight--diacritic hl-black">Überzeugung</span></p>
+    </div>
+    <div class="stage" style="background:#000000;">
+      <p class="headline omr-highlight-headline on-dark versal" style="font-size:34px;"><span class="omr-highlight hl-white">Reichweite</span> ist kein Zufall,<br>sondern das Ergebnis von Arbeit,<br>Haltung und klarer <span class="omr-highlight omr-highlight--diacritic hl-white">Überzeugung</span></p>
+    </div>
+    <div class="stage light-el" style="border-top:1px solid var(--border-color-subtle);">
+      <span class="txt-label-s-bold-uppercase" style="display:block; color:var(--text-color-subtle); margin:0 0 10px;">Bar on the inner line · word with umlaut</span>
+      <p class="headline omr-highlight-headline versal" style="font-size:34px;">Wir reden nicht nur<br>über Reichweite, wir überzeugen <span class="omr-highlight omr-highlight--diacritic hl-black">Führungskräfte</span><br>Jahr für Jahr mit messbaren Ergebnissen</p>
+    </div>
+    <div class="stage light-el" style="border-top:1px solid var(--border-color-subtle);">
+      <span class="txt-label-s-bold-uppercase" style="display:block; color:var(--text-color-subtle); margin:0 0 10px;">Wrapping bar statement · two independent bars, one per line</span>
+      <div style="display:flex; gap:32px; flex-wrap:wrap;">
+        <div>
+          <span class="tag-bad">✗ WRONG</span>
+          <p class="headline omr-highlight-headline versal" id="hl-void" style="font-size:34px; max-width:430px; margin-top:6px;">Reichweite entsteht durch <span class="omr-highlight hl-black">harte ehrliche Arbeit</span></p>
+          <p style="font-family:var(--font-mono); font-size:11px; color:var(--text-color-subtle); margin:6px 0 0;">Statement pulled closed → gap at the line end</p>
+        </div>
+        <div>
+          <span class="tag-ok">✓ RIGHT</span>
+          <p class="headline omr-highlight-headline versal" id="hl-split" style="font-size:34px; max-width:430px; margin-top:6px;">Reichweite entsteht durch <span class="omr-highlight hl-black">harte ehrliche</span><br><span class="omr-highlight hl-black">Arbeit</span></p>
+          <p style="font-family:var(--font-mono); font-size:11px; color:var(--text-color-subtle); margin:6px 0 0;">Break at the word boundary, two bars, left text edge</p>
+        </div>
+      </div>
+      <div style="margin-top:18px;">
+        <span class="txt-label-s-bold-uppercase" style="display:block; color:var(--text-color-subtle); margin:0 0 10px;">Umlaut only in the second bar · only that one gets the allowance</span>
+        <p class="headline omr-highlight-headline versal" id="hl-split-dia" style="font-size:34px; max-width:430px;">Wir schaffen <span class="omr-highlight hl-black">messbare</span><br><span class="omr-highlight omr-highlight--diacritic hl-black">Überzeugung</span></p>
+      </div>
+    </div>
+    <div class="stage light-el" style="display:flex; gap:28px; flex-wrap:wrap; align-items:center; border-top:1px solid var(--border-color-subtle);">
+      <span class="txt-label-s-bold-uppercase" style="color:var(--text-color-subtle);">Scaling · 63px</span>
+      <span class="headline omr-highlight-headline versal" style="font-size:63px;"><span class="omr-highlight hl-black">Balken</span></span>
+      <span class="txt-label-s-bold-uppercase" style="color:var(--text-color-subtle);">24px</span>
+      <span class="headline omr-highlight-headline versal" style="font-size:24px;"><span class="omr-highlight hl-black">Balken</span></span>
+    </div>
+    <div class="notes">
+      <ul>
+        <li>The gap between bars on neighbouring lines is <b>0.203em</b> and <b>falls out</b> — it is never set. No clearance value, no minimum distance in px.</li>
+        <li>The line height is in all cases <b>1.353em</b>, font-intrinsic. The umlaut bar grows upwards only (1.277em) and stays below the line height; the line spacing is not increased.</li>
+        <li>The bottom row shows <b>two font sizes</b>: all values are em-based and scale along.</li>
+        <li>A <b>single-line test case counts as not checked.</b> Every asset is checked with the longest realistically occurring headline, at least three lines, light and dark.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ============ ART 2 ============ -->
+  <div class="card">
+    <div class="head">
+      <span class="badge">KIND 2</span>
+      <h3 class="txt-headline-l-bold">Outline type</h3>
+      <span class="where">only in headlines · OMR One Extrabold (800)</span>
+    </div>
+    <div class="stage dark">
+      <p class="headline omr-highlight-headline on-dark versal" style="font-size:40px;">Wörter als <span class="outline on-dark">Umriss</span></p>
+    </div>
+    <div class="stage">
+      <div class="anti">
+        <div class="col">
+          <span class="tag-ok">✓ RIGHT</span>
+          <div class="frame">
+            <span class="headline outline versal" style="font-size:38px;">Outline</span>
+          </div>
+          <p style="font-family:var(--font-mono); font-size:11px; color:var(--text-color-subtle); margin:8px 0 0;">Fill transparent <b style="color:var(--text-color-main)">+</b> visible stroke</p>
+        </div>
+        <div class="col">
+          <span class="tag-bad">✗ WRONG</span>
+          <div class="frame">
+            <span class="headline wrong-outline versal" style="font-size:38px;">Outline</span>
+          </div>
+          <p style="font-family:var(--font-mono); font-size:11px; color:var(--text-color-subtle); margin:8px 0 0;">only fill removed → invisible</p>
+        </div>
+      </div>
+    </div>
+    <div class="notes">
+      <ul>
+        <li><b>Only in capitals</b> (continuous capitals), never in mixed case.</li>
+        <li><b>Headlines are always left-aligned with a ragged right edge.</b> Never right-aligned, never centred, never justified, not even for headlines with a bar (CLAUDE.md §11).</li>
+        <li>Fill <b>transparent</b> set <b>and at the same time</b> a visible <b>outline (stroke)</b> give it; both together.</li>
+        <li>Removing only the fill makes the text <b>invisible</b> — that is always wrong.</li>
+        <li>Stroke colour follows the contrast pairing (white outline on purple/black, black outline on light).</li>
+        <li>Stroke weight <b>strong enough</b> for legibility, but not so thick that the letterform closes up.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ============ ART 3 ============ -->
+  <div class="card">
+    <div class="head">
+      <span class="badge">KIND 3</span>
+      <h3 class="txt-headline-l-bold">Bold</h3>
+      <span class="where">only in body copy · OMR One Bold (700)</span>
+    </div>
+    <div class="stage">
+      <div class="body-demo txt-body-l-regular">
+        <p>In body copy single words are emphasised with <b>OMR One Bold (700)</b> . The text stays calmly legible and the <b>important terms</b> still stand out, without bar or outline.</p>
+      </div>
+    </div>
+    <div class="notes">
+      <ul>
+        <li>Exclusively in body/running text, <b>never in headlines</b>.</li>
+        <li>Always implemented via the cut <b>OMR One Bold (700)</b>.</li>
+        <li>In body copy <b>no highlight bars and no outline type</b>.</li>
+      </ul>
+    </div>
+  </div>
+
+</div>
+</body></html>

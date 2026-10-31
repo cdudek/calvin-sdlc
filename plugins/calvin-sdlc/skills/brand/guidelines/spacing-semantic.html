@@ -1,0 +1,17 @@
+<!-- @dsCard group="Spacing" viewport="700x220" name="Semantic spacing" subtitle="Intent-named layout tokens" -->
+<!DOCTYPE html>
+<html lang="en" data-theme="light"><head><meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body{margin:0;padding:20px;background:var(--background-color-surface);color:var(--text-color-main);font-family:var(--font-sans)}
+  .row{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+  .bar{background:var(--background-color-primary-subtle);height:16px;border-radius:var(--radius-xs)}
+  .tok{font-family:var(--font-mono);font-size:11px;color:var(--text-color-subtlest);width:64px}
+  .val{font-size:11px;color:var(--text-color-subtlest);margin-left:auto}
+</style></head><body>
+  <div class="row"><span class="tok" style="width:150px">content-gap</span><div class="bar" style="width:24px"></div><span class="val">16 → 24px stacked blocks</span></div>
+  <div class="row"><span class="tok" style="width:150px">inline-gap</span><div class="bar" style="width:8px"></div><span class="val">8px form rows, toolbars</span></div>
+  <div class="row"><span class="tok" style="width:150px">tight-gap</span><div class="bar" style="width:4px"></div><span class="val">4px icon ↔ label</span></div>
+  <div class="row"><span class="tok" style="width:150px">inner-md</span><div class="bar" style="width:16px"></div><span class="val">16px default card padding</span></div>
+  <div class="row"><span class="tok" style="width:150px">section-spacing-md</span><div class="bar" style="width:80px"></div><span class="val">32 → 80px vertical section rhythm</span></div>
+</body></html>

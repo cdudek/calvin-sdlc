@@ -1,0 +1,52 @@
+<!-- @dsCard group="Components" viewport="700x420" name="Select & text fields" subtitle="RichSelectField (search · multi · validation) + TextInput" -->
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/lucide@0.544.0/dist/umd/lucide.js"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>
+  body { margin: 0; padding: 24px; background: var(--background-color-surface); }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px 24px; align-items: start; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { RichSelectField, TextInput, Icon } = window.OMRDesignSystem_d9b3c2;
+
+const CATS = [
+  { value: 'crm', label: 'CRM software' },
+  { value: 'email', label: 'Email marketing' },
+  { value: 'pm', label: 'Project management' },
+  { value: 'seo', label: 'SEO tools' },
+  { value: 'shop', label: 'Shop systems' },
+  { value: 'analytics', label: 'Analytics' },
+  { value: 'legacy', label: 'Legacy tool (discontinued)', disabled: true },
+];
+
+function Demo() {
+  const [single, setSingle] = React.useState('crm');
+  const [multi, setMulti] = React.useState(['email', 'seo']);
+  const [searchVal, setSearchVal] = React.useState(undefined);
+  const [txt, setTxt] = React.useState('');
+  return (
+    <div className="grid">
+      <RichSelectField label="Category (single, clearable)" options={CATS} value={single} onChange={setSingle} clearable prepend={<Icon name="layout-grid" size={18}/>} />
+      <RichSelectField label="Categories (multi + counter + search)" options={CATS} value={multi} onChange={setMulti} multiple counter searchable placeholder="Choose categories" />
+      <RichSelectField label="Plan (invalid)" options={CATS} value={searchVal} onChange={setSearchVal} state="invalid" helper="Please choose a category." />
+      <RichSelectField label="Disabled" options={CATS} value={'crm'} onChange={()=>{}} disabled />
+      <TextInput label="Search products" placeholder="Search…" value={txt} onChange={(e)=>setTxt(e.target.value)} prepend={<Icon name="search" size={18}/>} />
+      <TextInput label="Company name" value="Acme GmbH" state="valid" helper="Looks good." onChange={()=>{}} />
+    </div>
+  );
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<Demo/>);
+</script>
+</body>
+</html>

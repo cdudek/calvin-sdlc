@@ -1,0 +1,214 @@
+# Password
+
+**Sections (line range):** Overview 11-18 · Use Cases 19-33 (When to use 21-27, When not to use 28-33) · Benefits 34-40 · Drawbacks 41-46 · Anatomy 47-80 · Best Practices 81-141 (Content & Usability 83-98, Accessibility 99-113, Security Considerations 114-128, Layout & Positioning 129-141) · Testing Guidelines 142-168 · Related Patterns 169-172 · Frequently Asked Questions 173-194 · Resources 195-215
+
+> Secure password entry with feedback
+
+Build secure and user-friendly password fields with validation, strength indicators, and accessibility features.
+
+**Category:** Forms · **Status:** complete · **Build effort:** medium · **Source:** https://uxpatterns.dev/patterns/forms/password
+
+## Overview
+
+A **Password Input** is a specialized text field designed to securely collect user passwords. It masks characters to prevent onlookers from reading the input and may include additional security features such as password visibility toggles, strength indicators, and validation requirements.
+
+Password fields are commonly used in **authentication forms, account creation, and security-related input fields** where sensitive data entry is required.
+
+**Build effort:** medium. Requires input masking, secure storage considerations, optional password strength validation, and accessibility features.
+
+## Use Cases
+
+### When to use:
+
+- **Login and authentication forms** – Securing user access to accounts.
+- **Account creation and password updates** – Ensuring users create strong, secure passwords.
+- **Two-factor authentication (2FA) or PIN entry** – Protecting access to critical information.
+- **Security-sensitive fields** – Protecting data such as encryption keys or private access codes.
+
+### When not to use:
+
+- **For non-sensitive text input** – Use a standard [text field](patterns/forms/text-field.md) instead.
+- **For one-time codes (OTP) or PINs** – Use the [Code Confirmation](patterns/forms/code-confirmation.md) pattern instead.
+- **For password confirmation fields** – Use an inline validation approach to avoid user frustration.
+
+## Benefits
+
+- **Enhances security** – Prevents passwords from being visible to onlookers.
+- **Reduces accidental exposure** – Masks characters by default.
+- **Encourages strong password usage** – Supports strength indicators and validation rules.
+- **Supports accessibility** – Allows users to toggle visibility when needed.
+
+## Drawbacks
+
+- **Usability concerns** – Masking can lead to mistyped passwords.
+- **Increased cognitive load** – Users may struggle to recall their input without visibility.
+- **Potential security trade-offs** – Some password visibility toggles may pose a risk if not well-implemented.
+
+## Anatomy
+
+```mermaid
+graph TD
+  A[Password Field] --> B[Label]
+  A --> C[Input type=password]
+  A --> D[Show/Hide Toggle]
+  A --> E[Helper Text]
+  A --> F[Strength Indicator]
+  A --> G[Validation/Error Message]
+```
+
+### Component Structure
+
+1. **Label**
+
+   - Clearly identifies the expected credential (e.g., "Password").
+   - Stays visible; never rely on placeholder as the only cue.
+
+2. **Password Input**
+
+   - Uses `type="password"` by default.
+   - Supports autofill and password-manager interactions.
+
+3. **Visibility Toggle**
+
+   - Uses a button with an accessible label (e.g., "Show password").
+   - Does not steal focus from the input while toggling.
+
+4. **Requirements & Feedback**
+
+   - Shows requirements close to the field (`aria-describedby`).
+   - Provides inline validation and optional strength signals.
+
+## Best Practices
+
+### Content & Usability
+
+**Do's ✅**
+
+- Provide a **password visibility toggle** to allow users to verify input.
+- Display **clear error messages** when password criteria are not met.
+- Indicate **password requirements before users type** to prevent frustration.
+- Offer **password strength indicators** to encourage secure choices.
+- Allow **paste functionality** to support password managers.
+
+**Don'ts ❌**
+
+- Don't enforce **arbitrary complexity rules** (e.g., forcing special characters unnecessarily).
+- Avoid disabling **autofill** unless there is a valid security reason.
+- Don't store passwords in plaintext or insecurely transmit them.
+
+### Accessibility
+
+**Do's ✅**
+
+- Ensure the password toggle is **keyboard accessible**.
+- Use **aria-describedby** to associate password requirements with the input field.
+- Maintain **high contrast and clear focus states**.
+- Allow users to **verify their input** without compromising security.
+
+**Don'ts ❌**
+
+- Don't rely on placeholder text for password guidance—it disappears when users type.
+- Avoid requiring **excessive special characters** that make passwords difficult to remember.
+- Don't assume all users can see visual strength indicators—provide **text-based guidance**.
+
+### Security Considerations
+
+**Do's ✅**
+
+- Use **secure hashing algorithms** when storing passwords.
+- Enforce **rate-limiting and lockouts** for repeated failed attempts.
+- Implement **2FA options** for high-security applications.
+- Allow **longer passphrases** for enhanced security.
+
+**Don'ts ❌**
+
+- Don't log passwords in any form.
+- Avoid showing **password hints** that expose sensitive information.
+- Don't rely solely on client-side validation—perform checks on the server as well.
+
+### Layout & Positioning
+
+**Do's ✅**
+
+- Place password fields **close to their confirmation fields** if applicable.
+- Use **inline validation** to inform users of errors in real time.
+- Ensure adequate **spacing and alignment** for clarity.
+
+**Don'ts ❌**
+
+- Avoid forcing **password confirmation fields** unless absolutely necessary.
+- Don't position error messages far from the field they relate to.
+
+## Testing Guidelines
+
+### Functional Testing
+
+**Should ✓**
+
+- [ ] Verify that the password field **masks input by default**.
+- [ ] Ensure the **password visibility toggle works correctly**.
+- [ ] Test **autofill and password manager compatibility**.
+- [ ] Validate that **password strength indicators update dynamically**.
+
+### Accessibility Testing
+
+**Should ✓**
+
+- [ ] Ensure **screen readers announce password requirements and errors clearly**.
+- [ ] Confirm **toggle visibility button is keyboard navigable**.
+- [ ] Check for **high contrast between text and background**.
+
+### Security Testing
+
+**Should ✓**
+
+- [ ] Ensure **passwords are encrypted before storage**.
+- [ ] Validate that **passwords are never logged or stored in plaintext**.
+- [ ] Test **rate-limiting and brute-force protections**.
+
+## Related Patterns
+
+- [Text Field](patterns/forms/text-field.md) – Standard input for non-sensitive text.
+
+## Frequently Asked Questions
+
+**Q: What is a password input field?**
+
+A password input field is a form element that allows users to enter sensitive information securely. The input is typically masked to prevent onlookers from viewing the entered text.
+
+**Q: How can I enhance the usability of password input fields?**
+
+Enhance usability by providing a 'Show Password' toggle, displaying password requirements upfront, and offering a password strength meter to guide users in creating strong passwords.
+
+**Q: What are best practices for password input field accessibility?**
+
+Ensure the password field is focusable, provide clear labels, support [keyboard navigation](glossary.md#keyboard-navigation), and offer options to unmask the password for verification purposes.
+
+**Q: Should I use one or two password fields during account creation?**
+
+It's increasingly common to use a single password field with a 'Show Password' option, as this simplifies the process and allows users to verify their input without requiring a second confirmation field.
+
+**Q: How can I inform users about password requirements?**
+
+Display password requirements near the input field, either by default or when the field is focused, to ensure users are aware of the criteria as they create their password.
+
+## Resources
+
+### References
+
+- [WCAG 2.2](https://www.w3.org/TR/WCAG22/) - Accessibility baseline for keyboard support, focus management, and readable state changes.
+- [MDN Form controls](https://developer.mozilla.org/en-US/docs/Learn_web_development/Extensions/Forms) - Core browser behavior for HTML form controls, submission, validation, and semantics.
+
+### Guides
+
+- [WAI Forms Tips and Tricks](https://www.w3.org/WAI/tutorials/forms/tips/) - Practical guidance for formatting, grouping, timing, and forgiving user input rules.
+
+### Articles
+
+- [Nielsen Norman Group: Password creation](https://www.nngroup.com/articles/password-creation/) - Research on password rules, reveal controls, and frustration in sign-in flows.
+
+### NPM Packages
+
+- [`@zxcvbn-ts/core`](https://www.npmjs.com/package/%40zxcvbn-ts%2Fcore) - Modern password-strength estimation for inline guidance and reveal-time feedback.
+- [`react-hook-form`](https://www.npmjs.com/package/react-hook-form) - Low-friction form state and validation wiring for complex input flows.
+- [`zod`](https://www.npmjs.com/package/zod) - Schema validation for typed parsing, normalization, and field-level error handling.

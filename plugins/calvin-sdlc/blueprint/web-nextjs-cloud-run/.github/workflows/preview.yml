@@ -1,0 +1,102 @@
+name: Preview
+
+# Each PR gets a tagged revision of heydiff-web-staging with no traffic, at
+# https://pr-<n>---<staging host>. It shares the staging database and runs no migrations:
+# expand-and-contract means a PR's code must already work against the schema on main.
+# The tag is removed when the PR closes. PRs from forks get no preview (no OIDC token).
+# Security: no github.event.* expression is expanded inside a `run:` script.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+
+concurrency:
+  group: preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  PROJECT: heydiff
+  REGION: europe-west1
+  SERVICE: heydiff-web-staging
+  WIF_PROVIDER: projects/381767146697/locations/global/workloadIdentityPools/heydiff-github-shared/providers/heydiff-github-shared
+  DEPLOYER_SA: heydiff-web-deploy-shared@heydiff.iam.gserviceaccount.com
+
+jobs:
+  build:
+    if: >-
+      vars.DEPLOY_ENABLED == 'true' &&
+      github.event.action != 'closed' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    permissions:
+      contents: read
+      id-token: write
+      packages: read
+    uses: ./.github/workflows/build.yml
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: preview
+      url: ${{ steps.deploy.outputs.url }}
+    permissions:
+      contents: read
+      id-token: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
+        with:
+          workload_identity_provider: ${{ env.WIF_PROVIDER }}
+          service_account: ${{ env.DEPLOYER_SA }}
+      - uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3.0.1
+      - id: deploy
+        uses: ./.github/actions/cloud-run-deploy
+        with:
+          service: ${{ env.SERVICE }}
+          image: ${{ needs.build.outputs.web-image }}
+          tag: pr-${{ github.event.pull_request.number }}
+          expect-sha: ${{ needs.build.outputs.sha }}
+          promote: 'false'
+          private: 'true'
+          workload-identity-provider: ${{ env.WIF_PROVIDER }}
+          service-account: ${{ env.DEPLOYER_SA }}
+      - name: Post the preview address
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.pull_request.number }}
+          URL: ${{ steps.deploy.outputs.url }}
+          SHA: ${{ needs.build.outputs.sha }}
+        run: |
+          gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" --edit-last --create-if-none \
+            --body "Preview of ${SHA:0:12}: ${URL} (private: sign in with an allowed Google account)"
+
+  cleanup:
+    if: >-
+      vars.DEPLOY_ENABLED == 'true' &&
+      github.event.action == 'closed' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3
+        with:
+          workload_identity_provider: ${{ env.WIF_PROVIDER }}
+          service_account: ${{ env.DEPLOYER_SA }}
+      - uses: google-github-actions/setup-gcloud@aa5489c8933f4cc7a4f7d45035b3b1440c9c10db # v3.0.1
+      - name: Remove the preview tag
+        env:
+          TAG: pr-${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          if gcloud run services describe "$SERVICE" --project "$PROJECT" --region "$REGION" --format=json \
+              | jq -e --arg t "$TAG" '.status.traffic[] | select(.tag == $t)' >/dev/null; then
+            gcloud run services update-traffic "$SERVICE" --project "$PROJECT" --region "$REGION" --remove-tags "$TAG" --quiet
+          fi

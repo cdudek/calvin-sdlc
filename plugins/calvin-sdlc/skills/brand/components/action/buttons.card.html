@@ -1,0 +1,78 @@
+<!-- @dsCard group="Components" viewport="700x620" name="Buttons & links" subtitle="Semantic buttons · variant × intent matrix · sizes · link buttons" -->
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="../../styles.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/lucide@0.544.0/dist/umd/lucide.js"></script>
+<script src="../../_ds_bundle.js"></script>
+<style>
+  body { margin: 0; padding: 24px; background: var(--background-color-surface); }
+  .row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 16px; }
+  .lbl { display: block; margin: 0 0 10px; color: var(--text-color-subtlest); }
+  .matrix { display: grid; grid-template-columns: 88px repeat(4, 1fr); gap: 10px 12px; align-items: center; margin-bottom: 24px; }
+  .colhead { color: var(--text-color-subtlest); text-transform: capitalize; text-align: center; }
+  .rowhead { color: var(--text-color-subtle); text-transform: capitalize; }
+  .sec { margin-bottom: 8px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { Button, BtnLink, InlineLink, Icon } = window.OMRDesignSystem_d9b3c2;
+
+const VARIANTS = ['primary', 'secondary', 'outline'];
+const INTENTS = ['color', 'neutral', 'success', 'destructive'];
+
+function Demo() {
+  return (
+    <div>
+      <span className="txt-label-s-bold-uppercase lbl sec">Variant × intent — the full semantic matrix (size s)</span>
+      <div className="matrix">
+        <span></span>
+        {INTENTS.map((i) => <span key={i} className="txt-label-s-bold colhead">{i}</span>)}
+        {VARIANTS.map((v) => (
+          <React.Fragment key={v}>
+            <span className="txt-label-s-bold rowhead">{v}</span>
+            {INTENTS.map((i) => (
+              <div key={i} style={{ display: 'flex', justifyContent: 'center' }}>
+                <Button variant={v} intent={i} size="s" style={{ minWidth: 0, width: '100%' }}>{i}</Button>
+              </div>
+            ))}
+          </React.Fragment>
+        ))}
+      </div>
+
+      <span className="txt-label-s-bold-uppercase lbl">Sizes (primary · color)</span>
+      <div className="row">
+        <Button size="xs" intent="color">xs</Button>
+        <Button size="s" intent="color">s</Button>
+        <Button size="m" intent="color" prefixIcon={<Icon name="plus" size={18}/>}>Add item</Button>
+        <Button size="l" intent="color" suffixIcon={<Icon name="arrow-right" size={22}/>}>Continue</Button>
+      </div>
+
+      <span className="txt-label-s-bold-uppercase lbl">Disabled</span>
+      <div className="row">
+        <Button variant="primary" intent="color" size="s" disabled>Primary</Button>
+        <Button variant="secondary" intent="color" size="s" disabled>Secondary</Button>
+        <Button variant="outline" intent="neutral" size="s" disabled>Outline</Button>
+      </div>
+
+      <span className="txt-label-s-bold-uppercase lbl">Link buttons &amp; inline links</span>
+      <div className="row">
+        <BtnLink href="#" variant="color" suffixIcon={<Icon name="arrow-right" size={16}/>}>Documentation</BtnLink>
+        <BtnLink href="#" variant="neutral">Terms of service</BtnLink>
+        <BtnLink href="#" variant="color" underline>Get started</BtnLink>
+        <span className="txt-body-m-regular text-subtle">See our <InlineLink href="#">pricing</InlineLink>.</span>
+      </div>
+    </div>
+  );
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<Demo/>);
+</script>
+</body>
+</html>

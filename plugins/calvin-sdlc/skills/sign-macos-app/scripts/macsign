@@ -1,0 +1,507 @@
+#!/usr/bin/env bash
+# macsign - Developer ID signing and notarization for any macOS .app
+#
+# Deliberately a single dependency-free bash script: signing is something you
+# want to be able to read end to end before you trust it with a certificate.
+#
+# Secrets policy: this script never prints, logs or stores a secret. It reads
+# the signing key from your keychain (or, in CI, from an ephemeral keychain it
+# creates and destroys) and it never takes a password as an argument, because
+# arguments are visible to every process on the machine via `ps`.
+
+set -euo pipefail
+
+VERSION="1.0.0"
+SELF="$(basename "$0")"
+
+# Resolve through symlinks: this script is normally invoked via a link in
+# ~/.local/bin, while its asset templates live next to the real file.
+_src="$0"
+while [ -L "$_src" ]; do
+  _dir="$(cd -P "$(dirname "$_src")" && pwd)"
+  _src="$(readlink "$_src")"
+  case "$_src" in /*) ;; *) _src="$_dir/$_src" ;; esac
+done
+SCRIPT_DIR="$(cd -P "$(dirname "$_src")" && pwd)"
+
+die()  { printf '\033[31merror:\033[0m %s\n' "$*" >&2; exit 1; }
+info() { printf '\033[34m==>\033[0m %s\n' "$*"; }
+ok()   { printf '\033[32m  ok\033[0m %s\n' "$*"; }
+warn() { printf '\033[33m  !!\033[0m %s\n' "$*" >&2; }
+
+need() { command -v "$1" >/dev/null 2>&1 || die "missing required tool: $1"; }
+
+# ---------------------------------------------------------------- identities
+
+list_identities() {
+  security find-identity -v -p codesigning 2>/dev/null || true
+}
+
+list_developer_ids() {
+  # Developer ID Application is the only identity Gatekeeper accepts for
+  # software distributed outside the App Store.
+  list_identities | grep "Developer ID Application" | sed -E 's/.*"(.*)".*/\1/' || true
+}
+
+# Per-project signing settings, so a repo remembers which account ships it:
+#   TEAM=5R2DUSAJ8D
+#   PROFILE=macsign-personal
+project_config() {
+  [ -f .macsign ] || return 0
+  grep -E "^$1=" .macsign 2>/dev/null | head -1 | cut -d= -f2- | tr -d '"' || true
+}
+
+default_profile() {
+  # Credentials are per Apple account, so a machine with two accounts needs two
+  # notarytool profiles. The project file is what keeps them from crossing.
+  local p="${MACSIGN_PROFILE:-$(project_config PROFILE)}"
+  printf '%s' "${p:-macsign}"
+}
+
+select_identity() {
+  local want_team="${1:-}"
+  [ -n "$want_team" ] || want_team="${MACSIGN_TEAM:-$(project_config TEAM)}"
+
+  local ids; ids="$(list_developer_ids)"
+  [ -n "$ids" ] || die "no 'Developer ID Application' certificate found - run '$SELF doctor'"
+
+  if [ -n "$want_team" ]; then
+    local hit; hit="$(printf '%s\n' "$ids" | grep -F "($want_team)" | head -1 || true)"
+    [ -n "$hit" ] || die "no Developer ID for team '$want_team'. Installed:
+$(printf '%s\n' "$ids" | sed 's/^/  /')"
+    printf '%s' "$hit"; return 0
+  fi
+
+  # More than one Apple account on a machine means more than one Developer ID.
+  # Guessing here is how a personal side project ends up shipped as an
+  # employer's software, signed with a certificate that is not yours to spend -
+  # so when it is ambiguous, ask rather than pick.
+  local n; n="$(printf '%s\n' "$ids" | grep -c . || true)"
+  if [ "$n" -gt 1 ]; then
+    die "more than one Developer ID certificate is installed:
+$(printf '%s\n' "$ids" | sed 's/^/  /')
+Choose one explicitly, by team id:
+  $SELF sign <App.app> --team TEAMID
+or record it for this project once:
+  printf 'TEAM=TEAMID\\nPROFILE=macsign-<name>\\n' > .macsign"
+  fi
+  printf '%s' "$ids"
+}
+
+team_id_from_identity() {
+  # The team id is the parenthesised suffix: "... Calvin Dudek (5R2DUSAJ8D)"
+  printf '%s' "$1" | sed -E 's/.*\(([A-Z0-9]+)\)$/\1/'
+}
+
+# -------------------------------------------------------------- entitlements
+
+write_default_entitlements() {
+  # Start from the smallest set that lets an interpreted app (Python/py2app,
+  # Electron, anything using libffi or dlopen) survive the hardened runtime.
+  # Each entitlement weakens a protection, so remove any your app does not
+  # actually need - test by deleting one and seeing whether the app still runs.
+  cat > "$1" <<'PLIST'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- libffi builds executable trampolines at runtime; ctypes and PyObjC
+         both depend on it, so a Python app without this crashes on launch. -->
+    <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+    <true/>
+    <!-- Bundled .so files are signed by you, not by Apple. Library validation
+         would otherwise refuse to load them. -->
+    <key>com.apple.security.cs.disable-library-validation</key>
+    <true/>
+</dict>
+PLIST
+  printf '</plist>\n' >> "$1"
+}
+
+# --------------------------------------------------------------------- sign
+
+cmd_sign() {
+  local app="" identity="" team="" ents="" keep_ents=0
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --identity)     identity="$2"; shift 2 ;;
+      --team)         team="$2"; shift 2 ;;
+      --entitlements) ents="$2"; keep_ents=1; shift 2 ;;
+      --profile)      shift 2 ;;   # accepted so `release` can pass it through
+      -*)             die "unknown option: $1" ;;
+      *)              app="$1"; shift ;;
+    esac
+  done
+  [ -n "$app" ] || die "usage: $SELF sign <App.app> [--team TEAMID] [--identity NAME] [--entitlements FILE]"
+  [ -d "$app" ] || die "no such app bundle: $app"
+  need codesign
+
+  [ -n "$identity" ] || identity="$(select_identity "$team")"
+
+  if [ -z "$ents" ]; then
+    ents="$(mktemp -t macsign-ents).plist"
+    write_default_entitlements "$ents"
+    info "using built-in hardened-runtime entitlements ($ents)"
+  fi
+
+  info "signing with: $identity"
+
+  # Sign inside out. A bundle's signature covers its nested code, so anything
+  # signed after the outer bundle invalidates that outer signature. This is
+  # also why --deep is the wrong tool: it re-signs nested code with the outer
+  # entitlements and skips things it does not recognise.
+  local count=0
+  while IFS= read -r bin; do
+    [ -n "$bin" ] || continue
+    codesign --force --timestamp --options runtime --sign "$identity" "$bin" 2>/dev/null \
+      && count=$((count + 1)) || warn "could not sign nested: $bin"
+  done < <(find "$app/Contents" -type f \
+             \( -name '*.dylib' -o -name '*.so' -o -name '*.node' \) 2>/dev/null)
+  ok "signed $count nested libraries"
+
+  # Helper executables need the entitlements too - in a py2app bundle the
+  # interpreter in Contents/MacOS is what actually runs your code.
+  count=0
+  while IFS= read -r bin; do
+    [ -n "$bin" ] || continue
+    [ "$bin" = "$app/Contents/MacOS/$(basename "$app" .app)" ] && continue
+    if file "$bin" 2>/dev/null | grep -q 'Mach-O'; then
+      codesign --force --timestamp --options runtime --entitlements "$ents" \
+        --sign "$identity" "$bin" && count=$((count + 1))
+    fi
+  done < <(find "$app/Contents/MacOS" -type f -perm +111 2>/dev/null)
+  ok "signed $count helper executables"
+
+  # Frameworks are bundles: sign each one as a unit, after its contents.
+  while IFS= read -r fw; do
+    [ -n "$fw" ] || continue
+    codesign --force --timestamp --options runtime --sign "$identity" "$fw" \
+      && ok "signed framework: $(basename "$fw")"
+  done < <(find "$app/Contents" -type d -name '*.framework' 2>/dev/null)
+
+  # The bundle last.
+  codesign --force --timestamp --options runtime --entitlements "$ents" \
+    --sign "$identity" "$app"
+  ok "signed bundle: $app"
+
+  [ "$keep_ents" -eq 1 ] || rm -f "$ents"
+  printf '\n'
+  cmd_verify "$app" --local
+}
+
+# ------------------------------------------------------------------- verify
+
+cmd_verify() {
+  local app="$1"; shift || true
+  local local_only=0
+  [ "${1:-}" = "--local" ] && local_only=1
+  [ -e "$app" ] || die "no such path: $app"
+  need codesign
+
+  info "verifying $app"
+
+  local vout
+  if vout="$(codesign --verify --strict --verbose=2 "$app" 2>&1)"; then
+    ok "signature valid on disk"
+  else
+    printf '%s\n' "$vout" | grep -v -- '--prepared:\|--validated:' | tail -5 >&2
+    die "signature is not valid"
+  fi
+
+  local details; details="$(codesign -dv --verbose=4 "$app" 2>&1)"
+  local authority team flags
+  # These greps legitimately find nothing on an unsigned or ad-hoc bundle -
+  # which is precisely the case this command exists to report, so a missing
+  # line must not abort the run under `set -e`.
+  authority="$(printf '%s' "$details" | grep '^Authority=' | head -1 | cut -d= -f2- || true)"
+  team="$(printf '%s' "$details" | grep '^TeamIdentifier=' | cut -d= -f2- || true)"
+  flags="$(printf '%s' "$details" | grep '^CodeDirectory' | head -1 || true)"
+
+  case "$authority" in
+    "Developer ID Application"*) ok "authority: $authority" ;;
+    "") warn "no authority - the bundle is unsigned" ;;
+    *)  warn "authority is '$authority' (not a Developer ID - Gatekeeper will refuse it)" ;;
+  esac
+
+  if [ "$team" = "not set" ] || [ -z "$team" ]; then
+    warn "TeamIdentifier not set - this is an ad-hoc signature"
+  else
+    ok "team identifier: $team"
+  fi
+
+  if printf '%s' "$flags" | grep -q 'runtime'; then
+    ok "hardened runtime enabled"
+  else
+    warn "hardened runtime NOT enabled - notarization will reject this"
+  fi
+
+  [ "$local_only" -eq 1 ] && return 0
+
+  if xcrun stapler validate "$app" >/dev/null 2>&1; then
+    ok "notarization ticket stapled"
+  else
+    warn "no stapled ticket (run '$SELF notarize')"
+  fi
+
+  local verdict
+  verdict="$(spctl -a -vvv -t exec "$app" 2>&1 || true)"
+  if printf '%s' "$verdict" | grep -q 'accepted'; then
+    ok "Gatekeeper: $(printf '%s' "$verdict" | grep 'source=' | head -1)"
+  else
+    warn "Gatekeeper rejects it: $verdict"
+  fi
+}
+
+# ----------------------------------------------------------------- notarize
+
+cmd_notarize() {
+  local target="" profile="$(default_profile)"
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --profile) profile="$2"; shift 2 ;;
+      -*)        die "unknown option: $1" ;;
+      *)         target="$1"; shift ;;
+    esac
+  done
+  [ -n "$target" ] || die "usage: $SELF notarize <App.app|file.dmg|file.zip> [--profile NAME]"
+  [ -e "$target" ] || die "no such path: $target"
+  need xcrun
+
+  if ! xcrun notarytool history --keychain-profile "$profile" >/dev/null 2>&1; then
+    die "no notarytool profile '$profile'. Create one once, either way:
+
+  # Preferred - an App Store Connect API key, scoped and revocable on its own:
+  xcrun notarytool store-credentials \"$profile\" \\
+      --key /path/to/AuthKey_XXXXXXXX.p8 --key-id KEYID --issuer ISSUER-UUID
+
+  # Or, with no API key at all - an app-specific password from
+  # appleid.apple.com (Sign-In and Security -> App-Specific Passwords):
+  xcrun notarytool store-credentials \"$profile\" \\
+      --apple-id you@example.com --team-id TEAMID
+
+Both store the credential in your keychain. The second is tied to your Apple
+ID rather than being independently revocable, which is the reason to prefer
+the first once you are signing regularly."
+  fi
+
+  # notarytool only accepts a container, never a bare .app.
+  local upload="$target" tmpzip=""
+  if [ -d "$target" ]; then
+    tmpzip="$(mktemp -d)/$(basename "$target" .app).zip"
+    info "packing $target for upload"
+    ditto -c -k --keepParent "$target" "$tmpzip"
+    upload="$tmpzip"
+  fi
+
+  info "submitting to Apple (this usually takes 1-5 minutes)"
+  local out
+  if ! out="$(xcrun notarytool submit "$upload" --keychain-profile "$profile" --wait 2>&1)"; then
+    printf '%s\n' "$out" >&2
+    local id; id="$(printf '%s' "$out" | grep -o '[0-9a-f-]\{36\}' | head -1)"
+    [ -n "$id" ] && warn "full log: xcrun notarytool log $id --keychain-profile $profile"
+    die "notarization failed"
+  fi
+  printf '%s\n' "$out"
+
+  if printf '%s' "$out" | grep -q 'status: Accepted'; then
+    ok "accepted by Apple"
+  else
+    local id; id="$(printf '%s' "$out" | grep -o '[0-9a-f-]\{36\}' | head -1)"
+    warn "not accepted - read the log:"
+    warn "  xcrun notarytool log $id --keychain-profile $profile"
+    exit 1
+  fi
+
+  # Staple the real artifact, not the throwaway zip: a zip cannot hold a ticket.
+  info "stapling ticket to $target"
+  xcrun stapler staple "$target"
+  ok "stapled"
+  [ -n "$tmpzip" ] && rm -rf "$(dirname "$tmpzip")"
+  printf '\n'
+  cmd_verify "$target"
+}
+
+# --------------------------------------------------------------------- dmg
+
+cmd_dmg() {
+  local app="$1"; [ -d "$app" ] || die "usage: $SELF dmg <App.app>"
+  local name out
+  name="$(basename "$app" .app)"
+  out="${2:-$name.dmg}"
+  need hdiutil
+  info "building $out"
+  local staging; staging="$(mktemp -d)"
+  cp -R "$app" "$staging/"
+  ln -s /Applications "$staging/Applications"
+  hdiutil create -volname "$name" -srcfolder "$staging" -ov -format UDZO "$out" >/dev/null
+  rm -rf "$staging"
+  ok "built $out"
+}
+
+# ----------------------------------------------------------------- release
+
+cmd_release() {
+  local app="${1:-}"; shift || true
+  [ -d "$app" ] || die "usage: $SELF release <App.app> [--team TEAMID] [--profile NAME]"
+
+  # Resolve the identity once, up front: the app, the DMG and the notarization
+  # ticket all have to come from the same account, and finding out halfway
+  # through that they did not means re-signing everything.
+  local team=""
+  local a
+  for a in "$@"; do
+    [ "${prev:-}" = "--team" ] && team="$a"
+    prev="$a"
+  done
+  local identity; identity="$(select_identity "$team")"
+  info "release will be signed by: $identity"
+
+  cmd_sign "$app" --identity "$identity"
+
+  # Notarize and staple the bundle BEFORE packaging it. A ticket stapled to a
+  # DMG covers the DMG, not the app a user drags out of it - so an app that is
+  # packaged first and stapled later ships with no ticket of its own, and fails
+  # to validate on a machine that is offline the first time it runs.
+  cmd_notarize "$app" "$@"
+
+  local dmg; dmg="$(basename "$app" .app).dmg"
+  cmd_dmg "$app" "$dmg"
+  # Sign the container too, so the download itself carries your identity.
+  codesign --force --timestamp --sign "$identity" "$dmg"
+  # Second round trip, on the container this time. Apple is fast, but budget
+  # two waits rather than one.
+  cmd_notarize "$dmg" "$@"
+}
+
+# ------------------------------------------------------------------ doctor
+
+cmd_doctor() {
+  info "tools"
+  for t in codesign xcrun security hdiutil ditto; do
+    command -v "$t" >/dev/null 2>&1 && ok "$t" || warn "$t missing"
+  done
+
+  info "signing identities"
+  local ids; ids="$(list_identities)"
+  if printf '%s' "$ids" | grep -q "Developer ID Application"; then
+    printf '%s\n' "$ids" | sed 's/^/  /'
+
+    local devids n
+    devids="$(list_developer_ids)"
+    n="$(printf '%s\n' "$devids" | grep -c . || true)"
+    if [ "$n" -gt 1 ]; then
+      warn "$n Developer ID certificates are installed - one per Apple account."
+      warn "Which one signs a project is a decision, not a default:"
+      printf '%s\n' "$devids" | sed 's/^/     /' >&2
+    fi
+
+    info "this project"
+    if [ -f .macsign ]; then
+      sed 's/^/  /' .macsign
+    else
+      warn "no .macsign here - signing falls back to whatever is installed"
+    fi
+
+    local d
+    if d="$(select_identity 2>/dev/null)"; then
+      ok "will sign as: $d"
+      ok "team id: $(team_id_from_identity "$d")"
+      ok "notarytool profile: $(default_profile)"
+    else
+      warn "no identity selected for this project - run '$SELF sign --team TEAMID'"
+      warn "or write one: printf 'TEAM=...\\nPROFILE=...\\n' > .macsign"
+    fi
+  else
+    warn "no 'Developer ID Application' certificate in your keychain."
+    warn "Create one at https://developer.apple.com/account/resources/certificates"
+    warn "An 'Apple Development' certificate cannot ship software outside the App Store."
+  fi
+
+  info "notarytool credentials"
+  local profile="$(default_profile)"
+  if xcrun notarytool history --keychain-profile "$profile" >/dev/null 2>&1; then
+    ok "profile '$profile' works"
+  else
+    warn "no working profile '$profile' - see '$SELF help notarize'"
+  fi
+}
+
+# ----------------------------------------------------------------- ci-init
+
+cmd_ci_init() {
+  local dest="${1:-.github/workflows/release-signed.yml}"
+  [ -d .git ] || die "run this from the root of a git repository"
+  mkdir -p "$(dirname "$dest")"
+  [ -e "$dest" ] && die "$dest already exists - delete it first if you want it regenerated"
+
+  local tpl="$SCRIPT_DIR/../assets/release-signed.yml"
+  [ -f "$tpl" ] || die "workflow template missing at $tpl"
+  cp "$tpl" "$dest"
+  ok "wrote $dest"
+
+  cat <<'NEXT'
+
+Five secrets have to exist before that workflow can sign anything. Set them
+from files rather than by pasting values, so nothing lands in shell history:
+
+  # 1. Export the certificate WITH its private key from Keychain Access:
+  #    right-click the "Developer ID Application" identity -> Export ->
+  #    .p12 -> choose a strong password.
+  base64 -i DeveloperID.p12 | gh secret set MACOS_CERT_P12_BASE64
+  gh secret set MACOS_CERT_PASSWORD          # prompts, does not echo
+
+  # 2. App Store Connect -> Users and Access -> Integrations -> Keys ->
+  #    generate a key with the "Developer" role. The .p8 downloads once.
+  base64 -i AuthKey_XXXXXXXX.p8 | gh secret set AC_API_KEY_P8_BASE64
+  gh secret set AC_API_KEY_ID                # the 10-character key id
+  gh secret set AC_API_ISSUER_ID             # the issuer UUID on that page
+
+  # 3. Then delete the local copies - they are bearer credentials:
+  rm -P DeveloperID.p12 AuthKey_XXXXXXXX.p8
+
+Add *.p12 and *.p8 to .gitignore before you create either file.
+NEXT
+}
+
+# -------------------------------------------------------------------- help
+
+cmd_help() {
+  cat <<HELP
+$SELF $VERSION - Developer ID signing and notarization for macOS apps
+
+  $SELF doctor                    check certificates, tools and credentials
+  $SELF sign <App.app>            sign inside out with the hardened runtime
+  $SELF verify <App.app>          check signature, runtime, ticket, Gatekeeper
+  $SELF dmg <App.app> [out.dmg]   build a distributable disk image
+  $SELF notarize <path>           submit to Apple, wait, staple the ticket
+  $SELF release <App.app>         sign + dmg + notarize + staple + verify
+  $SELF ci-init [path]            scaffold a signed GitHub Actions release
+
+Options
+  --identity NAME       signing identity (default: your Developer ID Application)
+  --entitlements FILE   custom entitlements (default: built-in, Python-safe)
+  --profile NAME        notarytool keychain profile (default: \$MACSIGN_PROFILE or 'macsign')
+
+One-time setup for notarization:
+  xcrun notarytool store-credentials "macsign" \\
+      --key /path/to/AuthKey_XXXXXXXX.p8 --key-id KEYID --issuer ISSUER-UUID
+
+This script never accepts a password as an argument and never prints one.
+HELP
+}
+
+# --------------------------------------------------------------------- main
+
+case "${1:-help}" in
+  doctor)   shift; cmd_doctor "$@" ;;
+  sign)     shift; cmd_sign "$@" ;;
+  verify)   shift; cmd_verify "$@" ;;
+  dmg)      shift; cmd_dmg "$@" ;;
+  notarize) shift; cmd_notarize "$@" ;;
+  release)  shift; cmd_release "$@" ;;
+  ci-init)  shift; cmd_ci_init "$@" ;;
+  identities) list_identities ;;
+  -v|--version) printf '%s %s\n' "$SELF" "$VERSION" ;;
+  help|-h|--help) cmd_help ;;
+  *) die "unknown command: $1 (try '$SELF help')" ;;
+esac
