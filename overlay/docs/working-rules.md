@@ -20,11 +20,12 @@ How Calvin works with coding agents. Each rule came from a real mistake; the rea
 - A worktree lives at `<repo>/.worktrees/<name>`, always. `.worktrees/` is git-ignored globally and in `.git/info/exclude`. If one appears anywhere else, stop and fix the hook first.
 - Branch from a freshly fetched base: `git fetch origin && git checkout -b <name> origin/main`. Local `main` is usually behind.
 - Before handing over a PR, read `gh pr view <n> --json mergeStateStatus,autoMergeRequest`. `BEHIND` → `gh pr update-branch <n> --rebase` and wait for CI; `BLOCKED` → name the missing check or review; `CLEAN` → hand it over. Green CI is not the same as mergeable.
-- Arm auto-merge (`gh pr merge <n> --squash --auto`) on anything that can merge itself, but ask before arming it on a goal's milestone PR.
+- Arm auto-merge (`gh pr merge <n> --squash --auto`) on anything that can merge itself. On a milestone PR arm it once the gate passed and no Critical or High finding is open; ask only when one would be deferred.
 - Stack branches only for a real code dependency, and say "Stacked on #A, merge after it" in the body.
-- Records (plans, handovers, gate lines, validation, findings) are committed to the milestone or project branch they belong to and ship in its PR. No `records/*` PRs.
-- While a milestone is open, everything that belongs to it (a fix found in the build, a test or flaky-spec repair, a CI timeout tweak its tests need, records) is a commit on `milestone/<slug>`, never its own PR. The milestone PR is the only PR of the milestone; separate PRs only for other repositories and for changes the owner explicitly sends to `main` first.
-- Wait on another PR only when the code depends on it; otherwise build on, or merge that PR's branch into the milestone branch locally. Never idle on CI: arm auto-merge, watch in the background, start the next independent row (at most 4 builders).
+- **One milestone, one push, one PR.** Records, fixes, test repairs and CI tweaks are commits on `milestone/<slug>`. A record written after a merge is the next milestone's first commit; a fix for a merged milestone goes into the next one. No `records/*`, `fix/*` or `chore/merge-main-*` PR, ever. `pr-gate.sh` (sdlc-run 3.4) refuses them.
+- **Every milestone starts by merging `origin/main`** (and `origin/project/<slug>` in a project) into its worktree locally. The milestone gate fails `check=parent-sync` without it.
+- **The close runs locally first.** One `cct:builder` subagent runs unit tests, the full E2E suite, the one fix round and `verify_gate.py milestone`; the supervisor runs the reviews and builds the next independent milestone meanwhile. Only a `VERIFY PASS milestone` head is pushed, once, with one PR and auto-merge armed. CI is the last check: a red check gets one fix commit after reading its log, never a rerun.
+- Wait on another PR only when the code depends on it. Across repos, build against a local copy (`npm pack`, an uncommitted `file:` link) until that repo's next milestone publishes.
 - One change, one PR. Always give the full PR URL, never a bare number.
 - Format, lint and typecheck before every commit. CI rejects anything that skips them.
 

@@ -419,3 +419,30 @@ def test_a_stale_stamp_warns_and_never_changes_the_verdict(
     warn, last = _warn_for(tmp_path, stamp, kit)
     assert last.startswith("VERIFY PASS feature")
     assert (expect in warn) if expect else (warn == "")
+
+
+def test_milestone_gate_fails_until_the_parent_is_merged_in(tmp_path: Path) -> None:
+    # After milestone n merges, n+1 must take the new parent in locally before its gate passes.
+    repo = _repo(tmp_path, ["true"])
+    cfg = json.loads((repo / "sdlc.json").read_text())
+    (repo / "sdlc.json").write_text(
+        json.dumps({**cfg, "defaultBranch": "master", "checks": {"milestone": ["true"]}})
+    )
+    _git(repo, "commit", "-qam", "milestone checks")
+    origin = tmp_path / "origin.git"
+    _git(tmp_path, "init", "-q", "--bare", "-b", "master", str(origin))
+    _git(repo, "remote", "add", "origin", str(origin))
+    _git(repo, "push", "-q", "origin", "master")
+    _git(repo, "checkout", "-qb", "milestone/trial-2")
+    _approve(repo)
+    other = tmp_path / "other"
+    _git(tmp_path, "clone", "-q", str(origin), str(other))
+    (other / "merged.txt").write_text("milestone 1\n")
+    _git(other, "add", ".")
+    _git(other, "commit", "-qm", "milestone 1 merged")
+    _git(other, "push", "-q", "origin", "master")
+    r = _gate(repo, "milestone", ID)
+    assert r.returncode == 1 and _last(r) == f"VERIFY FAIL milestone {ID} check=parent-sync"
+    assert "git merge origin/master" in r.stdout
+    _git(repo, "merge", "-q", "--no-edit", "origin/master")
+    assert _last(_gate(repo, "milestone", ID)).startswith(f"VERIFY PASS milestone {ID}")

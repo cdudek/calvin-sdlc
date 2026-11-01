@@ -196,7 +196,11 @@ for every milestone of the plan, back to back. The plan's `## Milestones` groups
 a change small enough for one milestone has one.
 
 1. Milestone `n` works on `milestone/<slug>-<n>`, cut from `milestone/<slug>-<n-1>` (the first
-   from `origin/<default>`), so the build never waits for a merge.
+   from its parent on origin), so the build never waits for a merge. **Its first row is the
+   sync:** `git fetch origin && git merge origin/<default>`, in a project also
+   `git merge origin/project/<slug>`, locally in the milestone's worktree. Repeat it whenever an
+   earlier milestone merges. It is a commit, never a PR; `verify_gate.py milestone` fails with
+   `check=parent-sync` until it is done, so it cannot be skipped.
 2. Per feature, in order: write the tests for its facts (`cct:e2e-write`, tagged `@F<n>`;
    bugs: `behavior-test-writer`, then `fix-implementer`), build in the plan's folders, commit,
    set the row in `milestone.md` to `done <sha>`, start the next feature at once. **Nothing
@@ -204,17 +208,21 @@ a change small enough for one milestone has one.
    A commit that breaks something is found by the milestone's checks, which is the point.
 3. Features that edit different files may build in parallel worktrees cut from the milestone
    branch (Wall clock below); the supervisor merges them into the milestone branch locally.
-4. When every feature of the milestone is `done`, Stage 6 runs for it in the same goal, and the
-   next milestone's build continues while its PR waits on CI.
+4. When every feature of the milestone is `done`, the supervisor hands the milestone's local
+   pipeline to **one `cct:builder` subagent** (unit tests, the full E2E suite, the one fix
+   round, `verify_gate.py milestone`; it spawns no agents of its own). The supervisor dispatches
+   the Stage 6 reviews and the validation in parallel, writes the findings the subagent fixes, and
+   goes on building the next milestone wherever that does not build on this one. Only a
+   `VERIFY PASS milestone` head is pushed, once, with one PR and auto-merge armed. CI is the last
+   check, never the test loop.
 
 ### Feature PRs (`delivery: "feature-prs"`)
 
-- **Preconditions:** the milestone branch is rebased on **its parent** when that moved —
-  `origin/project/<slug>` when the change has a project, `origin/<defaultBranch>` otherwise
-  (`git rebase` in the milestone worktree, push with lease); each next feature's worktree is cut from
-  it the way 1.2 step 5 says. In a project, rebase the project branch on the default branch
-  first, then the milestone on the project: rebasing the milestone straight onto the trunk
-  replays the other milestones' commits into it.
+- **Preconditions:** the milestone branch has merged **its parent** when that moved —
+  `git merge origin/<defaultBranch>`, in a project also `git merge origin/project/<slug>`, in the
+  milestone worktree, then pushed (`delivery: "feature-prs"` is the one mode where `pr-gate.sh`
+  lets a milestone branch be pushed before its close). Each next feature's worktree is cut from
+  it the way 1.2 step 5 says. Never rebase a pushed milestone or project branch.
 - **Steps (the goal runs these):**
   1. Start `/goal` with the feature's condition from `## Goal handover`.
   2. Tests first: `cct:e2e-write` for the feature's facts, tagged `@F<n>`. The feature's
@@ -269,23 +277,33 @@ a change small enough for one milestone has one.
 Measured on one repo in one day: 13 of 22 PRs were docs-only records, and the agent sat idle
 while a dependency PR's CI ran. Four rules, for every stack.
 
-- **Records and fixes ride along: one milestone, one PR.** While a milestone is open,
-  everything that belongs to it is a commit on `milestone/<slug>` (`project/<slug>` for a record
-  that spans milestones), pushed, and ships in the milestone PR: a fix found during the build,
-  a test or flaky-spec repair, a CI timeout tweak its tests need, plans, handovers, gate lines
-  (`verify/report.md`), `validation.md`, `findings.md`, `questions.md`, `milestone.md` rows and
-  the integrated project check. No `records/*` PR, no `docs/*` PR, no `fix/*` PR, no PR whose
-  only content is a record, a fix or a test repair. Separate PRs exist only for other
-  repositories and for a change the engineer explicitly sends to the default branch first. The
-  archive move (Stage 7) is the last commit of the PR into the default branch.
+- **One milestone, one push, one PR — enforced.** While a milestone is open, everything that
+  belongs to it is a commit on `milestone/<slug>` and ships in the milestone PR: a fix found
+  during the build, a test or flaky-spec repair, a CI timeout tweak its tests need, plans,
+  handovers, gate lines (`verify/report.md`), `validation.md`, `findings.md`, `questions.md`,
+  `milestone.md` rows and the integrated project check. A record that can only be written after
+  a merge (the merge commit, the tested head) is the next milestone's first commit; after the
+  last milestone it goes in the project PR's description. A fix for a milestone that already
+  merged goes into that repo's next milestone. A merge from the default branch is the next
+  milestone's sync row, never a `chore/merge-main-*` PR. `project/<slug>` is never pushed after
+  its creation; it moves only through milestone PRs. `pr-gate.sh` refuses everything else: a PR
+  into `project/*` or `milestone/*` from any other branch, a push of a milestone head without
+  `VERIFY PASS milestone` on it (a records-only commit after the PASS is fine), and inside
+  `/goal` any other PR or push. Another repository follows the same rule with its own milestone
+  branch. The only exception is the engineer's words in `decisions.json` `prExceptions`. The
+  archive move (Stage 7) is a commit in the last milestone.
+- **A cross-repo dependency builds against a local copy.** When this repo needs another repo's
+  unreleased code (a kit fix found by the app), link or pack it locally (`npm pack`, a
+  workspace `file:` path that is not committed) and build on. The published version arrives with
+  that repo's next milestone close, and this repo pins it then. Never a PR in the other repo just
+  to publish a snapshot.
 - **A merge gate only for a real code dependency.** Waiting for another PR to merge is justified
   only when this row's code imports, calls or edits something that exists only in that open PR.
   Tests, docs, records, config and unrelated rows are not dependencies: build on. When the code
   does depend, merge the PR's branch into the milestone branch locally
   (`git merge origin/<dependency-branch>`) and build on top; that PR merges when its CI is green.
-  When it has merged, `git rebase --onto origin/<parent> origin/<dependency-branch>` drops its
-  commits from the milestone branch.
-- **Never idle on CI.** After a push: arm auto-merge (`gh pr merge <n> --squash --auto`), watch
+  When it has merged, the next sync row merges the parent, which already holds those commits.
+- **Never idle on CI.** After the milestone push: arm auto-merge (`gh pr merge <n> --merge --auto`), watch
   the PR in the background (`gh pr checks <n> --watch` as a background command, or `Monitor`),
   and start the next independent row at once. The supervisor watches, not the builder; a
   builder returns when it has pushed. A red check interrupts: dispatch a builder to the PR's
@@ -398,10 +416,12 @@ person's own browser session. Never use Claude in Chrome or any tool driving tha
    The milestone gate also runs `marks.py check` as `owner-marks` when sessions or `marks.json`
    exist, independently of `sdlc.json` checks or UX skips. Paste `python3 scripts/marks.py table <id>`
    into the milestone report, including accepted gaps. A file check proves coverage, not pixels.
-6. One PR `milestone/<slug>` → **its parent** (`project/<slug>`, else the default branch) with
-   the report, `validation.md` and `Closes <KEY>` for the change's issue. One go: milestone `n`
-   opens its PR into the default branch once milestone `n-1` has merged (`git rebase --onto
-   origin/<default> milestone/<slug>-<n-1>` first); the build of `n+1` goes on meanwhile.
+6. One push and one PR `milestone/<slug>` → **its parent** (`project/<slug>`, else the default
+   branch) with the report, `validation.md` and `Closes <KEY>` for the change's issue, only once
+   the gate passed on that exact head. One go: milestone `n` opens its PR once milestone `n-1` has
+   merged and `n` has merged the new parent in (its sync row, run again); the build of `n+1` goes
+   on meanwhile. A red CI check: read its log, one fix commit, the gate again, one push. Never
+   rerun a job to see whether it passes.
    Into a project it is an interior PR:
    no Claude review, no tier, auto-merge armed on green. Into the default branch the tier
    decides. **The engineer accepts the milestone** in one `AskUserQuestion`: "Accept
@@ -414,14 +434,17 @@ person's own browser session. Never use Claude in Chrome or any tool driving tha
 Only when `decisions.json` has a `project`, and only once every milestone of it has merged
 into `project/<slug>`.
 
-1. Rebase `project/<slug>` on `origin/<defaultBranch>` and push with lease.
-2. Re-run `checks.milestone` on `git diff origin/<defaultBranch>...project/<slug>` — the whole
-   project as one diff. The per-milestone reviews each saw one slice; this is the first time
-   anything looks at the seams between them. Run `cct:security-review` on the same diff when auth, money or consent is touched;
-   it is the project's only security review. A fix or the gate line is a commit on
-   `project/<slug>`, not a PR.
+1. Nothing is pushed to `project/<slug>`: every milestone already merged the default branch in
+   (its sync row), so the project branch carries it.
+2. Re-run `checks.milestone` locally on a checkout of `origin/project/<slug>` merged with
+   `origin/<defaultBranch>` — the whole project as one diff. The per-milestone reviews each saw
+   one slice; this is the first time anything looks at the seams between them. Run `cct:security-review` on the same diff when auth, money or consent is touched;
+   it is the project's only security review. The gate line goes
+   in the project PR's description. A blocking finding becomes one more milestone, closed and
+   merged like any other, never a commit pushed to `project/<slug>`.
 3. One PR `project/<slug>` → default branch. **This is the PR that CI reviews and tiers** — the
-   first and only one in the whole chain that does. Auto-merge armed when the tier allows.
+   first and only one in the whole chain that does. If the default branch moved after the last
+   sync, `gh pr update-branch <n>` once. Auto-merge armed when the tier allows.
 4. **The engineer accepts the project** in one `AskUserQuestion`. No second fix round: what is
    left becomes the next project's first change.
 

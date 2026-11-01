@@ -22,14 +22,17 @@ branch), `merged` (feature PRs) or `blocked: <reason>`.
 
 | # | Change | Feature | PR or commit | State |
 |---|---|---|---|---|
-| 1 | {{CHANGE}} | <feature> | <url> | todo |
+| 0 | {{CHANGE}} | sync: `git fetch origin && git merge origin/<default>` (in a project also `origin/project/<slug>`), locally; again after every earlier milestone merges | <commit> | todo |
+| 1 | {{CHANGE}} | <feature> | <commit> | todo |
 
 ## Done
 
 - Every feature above is `done` (one go) or `merged` (feature PRs) on `milestone/<slug>`.
 - `python3 scripts/verify_gate.py milestone {{CHANGE}}` ends `VERIFY PASS milestone`.
 - `findings.md` has no open blocking item after the one fix round.
-- One PR from `milestone/<slug>` to the default branch, auto-merge armed.
+- Row 0 ran after the last earlier milestone merged (the gate's `parent-sync` check proves it).
+- One push and one PR from `milestone/<slug>` to its parent, after the gate passed, auto-merge armed.
+  No other PR or push for this milestone (`pr-gate.sh`).
 
 ## Outcome
 

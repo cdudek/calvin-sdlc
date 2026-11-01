@@ -10,7 +10,9 @@ Written by `sdlc-run adopt` from the kit; edit the kit, not this copy. stdlib on
 
 `approve` writes <changesDir>/<id>/lock.json: the hash of facts.md, done.json and
 sdlc.json `checks`, taken when the engineer approved the plan. `feature`/`milestone` refuse to
-run against criteria that moved since, then run the checks in order (cheapest first, the first
+run against criteria that moved since. `milestone` also fails with check=parent-sync while
+origin's default branch, or project/<slug> in a project, has commits HEAD lacks: merge them in
+locally first. Then it runs the checks in order (cheapest first, the first
 failure stops the run), and write <changesDir>/<id>/verify/report.json + report.md.
 
 Stdout is capped. The last line is exactly one of:
@@ -88,6 +90,27 @@ def criteria_hash(change: Path, checks: object) -> dict[str, str]:
         json.dumps(checks, sort_keys=True).encode("utf-8")
     ).hexdigest()
     return hashes
+
+
+def parent_tips(change: Path, cfg: dict) -> list[tuple[str, str]]:
+    """(branch, sha) on origin of every branch a milestone must contain: the default branch,
+    and project/<slug> too when the change has a project. A branch origin lacks (no remote,
+    offline, project not created yet) is left out."""
+    names = [cfg.get("defaultBranch") or "main"]
+    try:
+        project = json.loads((change / "decisions.json").read_text(encoding="utf-8")).get("project")
+    except (OSError, ValueError, AttributeError):
+        project = None
+    if isinstance(project, dict) and project.get("slug"):
+        prefix = (cfg.get("projects") or {}).get("branchPrefix", "project/")
+        names.insert(0, f"{prefix}{project['slug']}")
+    tips = []
+    for name in names:
+        sh("git", "fetch", "--quiet", "origin", name)  # offline: the last fetched tip still counts
+        tip = sh("git", "rev-parse", "--verify", "--quiet", f"origin/{name}^{{commit}}")
+        if tip:
+            tips.append((name, tip))
+    return tips
 
 
 def end(line: str, code: int) -> int:
@@ -225,6 +248,20 @@ def run(
         print("uncommitted changes: a PASS must name a commit. Commit, then run again.")
         print("\n".join(dirty[:TAIL]))
         return finish(f"VERIFY FAIL {scope} {change.name} check=uncommitted", 1)
+
+    if scope == "milestone":
+        behind = [
+            name
+            for name, tip in parent_tips(change, cfg)
+            if subprocess.run(
+                ["git", "merge-base", "--is-ancestor", tip, "HEAD"], capture_output=True
+            ).returncode
+        ]
+        if behind:
+            print(f"{', '.join('origin/' + b for b in behind)} has commits this milestone lacks.")
+            print("Merge in locally, then run the gate again (a commit here, never a PR):")
+            print("  git fetch origin && " + " && ".join(f"git merge origin/{b}" for b in behind))
+            return finish(f"VERIFY FAIL {scope} {change.name} check=parent-sync", 1)
 
     checks = cfg.get("checks", {}).get(scope, [])
     if not checks:

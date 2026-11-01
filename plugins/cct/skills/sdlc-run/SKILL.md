@@ -13,7 +13,7 @@ description: >-
 allowed-tools: "Read Grep Glob Edit Write Agent Skill AskUserQuestion Bash(bash */sdlc-run/scripts/*) Bash(python3 */sdlc-run/scripts/*) Bash(python3 */sdlc-run/templates/scripts/sdlc_version.py*) Bash(python3 scripts/sdlc_version.py*) Bash(python3 scripts/verify_gate.py *) Bash(python3 scripts/sdlc_status.py *) Bash(git *) Bash(gh *) Bash(bd *) Bash(plannotator *) Bash(make *) Bash(pnpm *) Bash(uv *) Bash(npx *) EnterWorktree mcp__claude_ai_Linear__* mcp__linear__*"
 user_invocable: true
 metadata:
-  version: 3.3.1
+  version: 3.4.1
   author: calvindudek
 effort: high
 ---
@@ -186,13 +186,20 @@ first seen as one thing, and that is where it is read.
 
 ### Records, gates and waiting
 
-While a milestone is open, everything that belongs to it is a commit on `milestone/<slug>`, never
-its own PR: fixes found in the build, test and flaky-spec repairs, CI timeout tweaks its tests
-need, and records (plans, handovers, gate lines, findings). The milestone PR is its only PR;
-separate PRs only for other repositories and for changes the engineer sends to the default
-branch first. A merge gate exists only for a real code dependency; otherwise build on, or
-merge the dependency's branch locally. After a push, arm auto-merge, watch in the background and
-start the next independent row (at most 4 builders). Agents run only the tests they touched.
+**One milestone, one push, one PR, enforced by `pr-gate.sh`.** Every milestone starts with its
+sync row: `git merge origin/<default>` (and `origin/project/<slug>` in a project) locally; the
+gate fails `check=parent-sync` without it. While a milestone is open, everything that belongs to
+it is a commit on `milestone/<slug>`, never its own PR or push: fixes found in the build, test
+and flaky-spec repairs, CI timeout tweaks its tests need, and records (plans, handovers, gate
+lines, findings). A record written after a merge is the next milestone's first commit; a fix for
+a merged milestone goes into the next one. The close runs locally: one `cct:builder` subagent runs
+unit tests, the full E2E suite, the one fix round and `verify_gate.py milestone`, while the
+supervisor dispatches the reviews and the validation. Only its
+`VERIFY PASS` head is pushed, once, with one PR and auto-merge armed, while the supervisor builds
+the next independent milestone (at most 4 builders). CI is the last check, never the test loop:
+a red check gets one fix commit and the gate again, never a rerun. Another repository follows
+the same rule on its own milestone branch; an exception needs the engineer's words in
+`decisions.json` `prExceptions`. Agents run only the tests they touched.
 CI runs each step (lint, unit, build, e2e, deploy) only when a changed code or config path needs it (`sdlc.json` `ciPaths`), nothing for a file that is neither, and runs the full E2E suite only on the
 PRs into the default branch or `project/*` and on milestone heads. Rules and per-stack
 commands: `references/stages.md` "Records, gates and waiting", `references/ci-blueprint.md`.
@@ -206,8 +213,13 @@ commands: `references/stages.md` "Records, gates and waiting", `references/ci-bl
 - Edit a test to make verify pass, or while `testLocked` without `testEdit`.
 - Start a second fix round at the milestone. What is left goes to the next milestone.
 - Put a local path in any tracker (`scripts/linear-safe.py`); keep a plan in `.claude/plans/`.
-- Open a PR for work that belongs to an open milestone; commit it on `milestone/<slug>`. Never
-  open a PR that holds only records, or wait on a PR your code does not depend on.
+- Open a PR or push for anything but a milestone close: records, fixes, test repairs and merges
+  from the default branch are commits on the milestone branch; a fix for a merged milestone goes
+  into the next one. Push a milestone head only after `VERIFY PASS milestone` on it, once.
+  `pr-gate.sh` refuses the rest; never work around it. Never wait on a PR your code does not
+  depend on.
+- Start a milestone without its sync row: `git merge origin/<default>` (and
+  `origin/project/<slug>` in a project), locally. The gate fails `check=parent-sync` without it.
 - Run the whole suite to check one change: the touched tests only, the full suite once per
   milestone (`../e2e-test-run/references/suite-speed-and-reliability.md` section K).
 - Name the change's issue key in a feature branch or feature PR: its merge closes the change
