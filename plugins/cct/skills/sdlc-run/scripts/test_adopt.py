@@ -80,6 +80,7 @@ GENERATED = [
     ".claude/hooks/gate-bash.sh",
     ".claude/hooks/lint-on-edit.sh",
     ".claude/hooks/plan-gate.sh",
+    ".claude/hooks/pr-gate.sh",
     ".claude/hooks/session-check.sh",
     ".claude/hooks/verify-on-stop.sh",
     ".github/tiers.json",
@@ -148,7 +149,7 @@ def test_second_run_writes_nothing(tmp_path: Path) -> None:
     assert second["WROTE"] == [], second["WROTE"]
 
 
-def test_pretooluse_keeps_both_hooks(tmp_path: Path) -> None:
+def test_pretooluse_keeps_every_hook(tmp_path: Path) -> None:
     # The spec used to be a dict keyed by event, so the second PreToolUse entry overwrote
     # the first and one of the two gates was simply absent from every adopted repo.
     repo = _repo(tmp_path, "node")
@@ -157,12 +158,13 @@ def test_pretooluse_keeps_both_hooks(tmp_path: Path) -> None:
     pre = [h["command"] for g in settings["hooks"]["PreToolUse"] for h in g["hooks"]]
     assert any("gate-bash.sh" in c for c in pre), pre
     assert any("chain-gate.sh" in c for c in pre), pre
+    assert any("pr-gate.sh" in c for c in pre), pre
     matchers = {g.get("matcher") for g in settings["hooks"]["PreToolUse"]}
     assert matchers == {"Bash", "Edit|Write"}, matchers
     # And a second adopt does not append them again.
     _adopt(repo)
     again = json.loads((repo / ".claude" / "settings.json").read_text(encoding="utf-8"))
-    assert len([h for g in again["hooks"]["PreToolUse"] for h in g["hooks"]]) == 2
+    assert len([h for g in again["hooks"]["PreToolUse"] for h in g["hooks"]]) == 3
 
 
 def test_dry_run_touches_nothing(tmp_path: Path) -> None:

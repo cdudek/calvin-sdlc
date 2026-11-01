@@ -1003,6 +1003,7 @@ def main() -> int:
         ("SessionStart", None, "session-check.sh", 5),
         ("PermissionRequest", "ExitPlanMode", "plan-gate.sh", 345600),
         ("PreToolUse", "Bash", "gate-bash.sh", 5),
+        ("PreToolUse", "Bash", "pr-gate.sh", 20),
         ("PreToolUse", "Edit|Write", "chain-gate.sh", 5),
         ("PostToolUse", "Edit|Write", "lint-on-edit.sh", 30),
         ("Stop", None, "verify-on-stop.sh", 300),

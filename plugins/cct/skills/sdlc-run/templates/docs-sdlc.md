@@ -84,6 +84,7 @@ the stage, all read from the change folder's files.
 | `SessionStart` | `session-check.sh` | reports missing plannotator setup |
 | `PermissionRequest ExitPlanMode` | `plan-gate.sh` | opens the plan gate when needed |
 | `PreToolUse Bash` | `gate-bash.sh` | blocks commands named in `blocked[]` |
+| `PreToolUse Bash` | `pr-gate.sh` | one PR per milestone: refuses a PR or push that is not a milestone close with `VERIFY PASS milestone` on its head, a PR into `project/*` from anything but a milestone, and any other PR or push inside `/goal` |
 | `PreToolUse Edit\|Write` | `chain-gate.sh` | the chain's gates; refuses source edits outside an active `/goal` and protected paths after approval |
 | `PostToolUse Edit\|Write` | `lint-on-edit.sh` | runs matching file-scoped lint/format command |
 | `Stop` | `verify-on-stop.sh` | runs `{{VERIFY_STOP}}` when dirty, falling back to `verify` when unset |

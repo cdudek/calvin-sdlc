@@ -398,6 +398,7 @@ EXPECTED_HOOKS = [
     ("SessionStart", "session-check.sh"),
     ("PermissionRequest", "plan-gate.sh"),
     ("PreToolUse", "gate-bash.sh"),
+    ("PreToolUse", "pr-gate.sh"),
     ("PreToolUse", "chain-gate.sh"),
     ("PostToolUse", "lint-on-edit.sh"),
     ("Stop", "verify-on-stop.sh"),

@@ -75,6 +75,7 @@ Two words used to collide, so they are fixed here: the playbook's `spec.md` is o
 | `testLocked` | only for bugs. Set true after the failing test is committed. |
 | `testEdit` | user words that allow a locked test edit. |
 | `milestone` | `{"kind": "new"\|"existing"\|"single"\|"hotfix", "slug"}`. Its presence marks a folder on the milestone process. |
+| `prExceptions` | `[{"branch", "words"}]`, or absent. A PR or push `pr-gate.sh` would refuse, allowed for that head branch only, with the engineer's own words. Never written without them. |
 | `project` | `{"kind": "new"\|"existing", "slug"}`, or **absent**. Absent is the normal case: the milestone is cut from the default branch and its PR goes there. Present means the milestone is cut from `project/<slug>` and its PR goes there instead, and the project branch is what later opens the one reviewed, tiered PR into the default branch. |
 | `protectedEdit` | the engineer's words that allow one edit of a protected path after approval. |
 
